@@ -810,17 +810,27 @@ const CTD_SECTION_NODES = [
   ["T13"],["T6"],["T5"],["W10"],["T4"],["T3"],["T2"],["W9"],
   ["T1"],["CS1"],["T11"],["T12"],["T9"],["T10"],["T8"],["S7"],
 ];
-// ordered nodes with mean position + cumulative along-track distance
+// 2026 CTD cruise track as an inverted V (SW → north apex at W9 → SE)
+const CTD_SECTION_ORDER_2026 = [
+  "Hardman Lake","STN-1-River","STN-02-Cast-1","STN-02","Cast005","Cast006","CTD-8 -rep",
+  "STN-W59-RBR CTD","STN-59","CTD29","CTD28","W59","CTD26","CTD25","CTD27","CTD24","CTD23","W9",
+  "CS2","CTD Cast 18","CTD Cast 16","CTD Cast 15","CTD Cast 14","STN07","WR3","WR2","WR1",
+].map(s=>[s]);
+// ordered nodes with mean position + cumulative along-track distance (year-aware)
 function ctdStationOrder(){
   const agg={}, N=CTD.depth.length;
   for(let r=0;r<N;r++){
+    if(!yrCTD(r)) continue;                         // only stations in the selected year(s)
     const st=CTDSTATIONS[CTD.st[r]];
     (agg[st]=agg[st]||{slat:0,slon:0,n:0});
     agg[st].slat+=CTD.lat[r]; agg[st].slon+=CTD.lon[r]; agg[st].n++;
   }
+  // pick the cruise-track order for the year in view
+  const orderNodes = (SELECTED_YEARS.has(2026) && CTD_SECTION_ORDER_2026.some(m=>agg[m[0]]))
+    ? CTD_SECTION_ORDER_2026 : CTD_SECTION_NODES;
   const used=new Set();
   let nodes=[];
-  for(const members of CTD_SECTION_NODES){
+  for(const members of orderNodes){
     let slat=0,slon=0,n=0;
     for(const m of members) if(agg[m]){slat+=agg[m].slat; slon+=agg[m].slon; n+=agg[m].n; used.add(m);}
     if(n>0) nodes.push({st:members[0], members, lat:slat/n, lon:slon/n});
