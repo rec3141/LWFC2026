@@ -1478,13 +1478,14 @@ const ODV_HDR={temp:"Temperature [degC]", spcond:"SpCond [uS/cm]", sal:"Salinity
   turb:"Turbidity [FNU]", chl:"Chlorophyll [ug/L]", fdom:"fDOM [QSU]"};
 function downloadLive(){
   const N=LIVE.t.length;
-  const head=["Cruise","Station","Type","yyyy-mm-ddThh:mm:ss",
+  // no Station column — ODV collapses underway data when every Station value is identical
+  const head=["Cruise","Type","yyyy-mm-ddThh:mm:ss",
     "Longitude [degrees_east]","Latitude [degrees_north]","Depth [m]",
     ...LIVE_VARS.map(v=>ODV_HDR[v.key]||v.label)];
   const lines=[head.join(",")];
   const cell=x=>isNum(x)?x:"";
   for(let r=0;r<N;r++){
-    lines.push(["LWFC2026","YSI-underway","C",
+    lines.push(["LWFC2026","C",
       new Date(LIVE.t[r]).toISOString().replace(/\.\d+Z$/,""),
       cell(LIVE.lon[r]), cell(LIVE.lat[r]), cell(LIVE.depth[r]),
       ...LIVE_VARS.map(v=>cell(LIVE[v.key][r]))].join(","));
