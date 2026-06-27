@@ -336,6 +336,9 @@
         <option value="live">Live sonde</option></select></div>
       <div class="ctl"><label>Variable</label><select id="secVar"></select></div>
       <div class="ctl"><label>Colour scale</label><select id="secScale"></select></div>
+      <div class="ctl"><label>Colour mapping</label>
+        <select id="secLog"><option value="lin">Linear</option>
+          <option value="log">Log₁₀</option></select></div>
       <div class="ctl"><label>Smoothing (IDW power)</label>
         <select id="secPow"><option value="1">Low (1)</option>
           <option value="2" selected>Medium (2)</option>
@@ -420,6 +423,28 @@ function rerenderActive(){
   if(a.id==="about") aboutStats();
   else if(RENDER[a.id]) RENDER[a.id]();
 }
+// rebuild station pickers to show only stations with data in the selected year(s)
+function refreshStationLists(){
+  const cs=document.getElementById("ctdStations");           // CTD Casts
+  if(cs){
+    const prev=new Set([...cs.selectedOptions].map(o=>+o.value));
+    const have=new Set(); for(let r=0;r<CTD.depth.length;r++) if(yrCTD(r)) have.add(CTD.st[r]);
+    cs.innerHTML="";
+    [...have].sort((a,b)=>a-b).forEach(si=>{ const o=document.createElement("option");
+      o.value=si; o.textContent=CTDSTATIONS[si]; o.selected=prev.has(si); cs.appendChild(o); });
+    if(![...cs.selectedOptions].length) [...cs.options].slice(0,3).forEach(o=>o.selected=true);
+  }
+  const ps=document.getElementById("profStations");          // Bottle Profiles
+  if(ps){
+    const prev=new Set([...ps.selectedOptions].map(o=>o.value));
+    const have=new Set(DATA.filter(yrBottle).map(d=>d.station));
+    ps.innerHTML="";
+    [...new Set(DATA.map(d=>d.station))].filter(s=>have.has(s)).forEach(st=>{
+      const o=document.createElement("option"); o.value=st; o.textContent=st;
+      o.selected=prev.has(st); ps.appendChild(o); });
+    if(![...ps.selectedOptions].length) [...ps.options].slice(0,3).forEach(o=>o.selected=true);
+  }
+}
 function renderYearBar(){
   const bar=document.getElementById("yearBar");
   if(AVAILABLE_YEARS.length<=1){ bar.style.display="none"; return; }
@@ -429,6 +454,7 @@ function renderYearBar(){
     const y=+cb.dataset.year;
     if(cb.checked) SELECTED_YEARS.add(y); else SELECTED_YEARS.delete(y);
     if(SELECTED_YEARS.size===0){ SELECTED_YEARS.add(y); cb.checked=true; return; }  // keep at least one
+    refreshStationLists();
     rerenderActive();
   });
 }
@@ -936,7 +962,15 @@ function drawSection(){
       showarrow:false,font:{color:"#9fb1cc"}}]}),CFG);
     return;
   }
-  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  // log₁₀ colour mapping (interpolate in log space; fall back to linear if too few positive values)
+  let logColor = (document.getElementById("secLog")||{}).value==="log";
+  let cpts = pts;
+  if(logColor){
+    const pos = pts.filter(p=>p.v>0);
+    if(pos.length>=3) cpts = pos.map(p=>({x:p.x, y:p.y, v:Math.log10(p.v)}));
+    else logColor=false;
+  }
+  const xs=cpts.map(p=>p.x), ys=cpts.map(p=>p.y);
   const xmin=Math.min(...xs), xmax=Math.max(...xs);
   const ymin=Math.min(...ys), ymax=Math.max(...ys);
   const xr=(xmax-xmin)||1, yr=(ymax-ymin)||1;
@@ -944,7 +978,7 @@ function drawSection(){
   const gx=Array.from({length:NX},(_,i)=>xmin+(xmax-xmin)*i/(NX-1));
   const gy=Array.from({length:NY},(_,j)=>ymin+(ymax-ymin)*j/(NY-1));
   // normalized coords for isotropic weighting
-  const np=pts.map(p=>({nx:(p.x-xmin)/xr, ny:(p.y-ymin)/yr, v:p.v}));
+  const np=cpts.map(p=>({nx:(p.x-xmin)/xr, ny:(p.y-ymin)/yr, v:p.v}));
   const Z=[];
   for(let j=0;j<NY;j++){
     const row=[];
@@ -962,11 +996,21 @@ function drawSection(){
     }
     Z.push(row);
   }
-  const zr=robustRange(pts.map(p=>p.v));   // clamp colour to 1–99 pct (avoids IDW/outlier blowout)
+  const zr=robustRange(cpts.map(p=>p.v));   // clamp colour to 1–99 pct (avoids IDW/outlier blowout)
+  const cbar={title:{text: logColor?(lbl+" (log₁₀)"):lbl, side:"right"}, thickness:14, len:.9};
+  if(logColor && zr){                       // label the colourbar with real values, not log
+    const tv=[], tt=[];
+    for(let e=Math.floor(zr[0]); e<=Math.ceil(zr[1]); e++) for(const m of [1,2,5]){
+      const t=e+Math.log10(m);
+      if(t>=zr[0] && t<=zr[1]){ const val=Math.pow(10,t); tv.push(t);
+        tt.push(val>=100?val.toFixed(0):val>=10?val.toFixed(0):val>=1?val.toFixed(1):val.toFixed(2)); }
+    }
+    if(tv.length){ cbar.tickmode="array"; cbar.tickvals=tv; cbar.ticktext=tt; }
+  }
   const heat={type:"contour", x:gx, y:gy, z:Z, colorscale:scale,
     contours:{coloring:"heatmap"}, line:{width:0},
     zauto: zr?false:true, zmin: zr?zr[0]:undefined, zmax: zr?zr[1]:undefined,
-    colorbar:{title:{text:lbl,side:"right"},thickness:14,len:.9}};
+    colorbar:cbar};
   const dots={type:"scatter", mode:"markers", x:xs, y:ys,
     marker:{size:7,color:"#0e1726",line:{width:1.4,color:"#e8eef7"}},
     hovertext:pts.map(p=>`<b>${p.st}</b><br>${fmt(p.x)} km, ${fmt(p.y)} m<br>${lbl}: ${fmt(p.v)}`),
@@ -1597,10 +1641,7 @@ function init(){
   // profiles
   fillVarSelect(document.getElementById("profVar"),
     numVars.filter(v=>!["lat","lon","depth"].includes(v.key)), "chla");
-  const ps=document.getElementById("profStations");
-  const stations=[...new Set(DATA.map(d=>d.station))];
-  stations.forEach((st,i)=>{const o=document.createElement("option");
-    o.value=st;o.textContent=st; if(i<3)o.selected=true; ps.appendChild(o);});
+  // (station pickers are populated by refreshStationLists() after the year filter is set up)
   // live sonde
   fillVarSelect(document.getElementById("liveVar"), LIVE_SCVARS, "temp");
   document.getElementById("liveVar").onchange=()=>{ liveChartDraw(); liveMapColored(); };
@@ -1620,9 +1661,6 @@ function init(){
   liveCardsDraw();
   // ctd
   fillVarSelect(document.getElementById("ctdVar"), CTDVARS, "temp");
-  const cs=document.getElementById("ctdStations");
-  CTDSTATIONS.forEach((st,i)=>{const o=document.createElement("option");
-    o.value=i;o.textContent=st; if(i<3)o.selected=true; cs.appendChild(o);});
   // scatter (dataset-dependent var lists)
   const none={key:"__none__",label:"(none)"};
   function fillScatterVars(){
@@ -1661,7 +1699,7 @@ function init(){
   document.getElementById("sDataset").onchange=()=>{fillScatterVars(); drawScatter();};
   document.getElementById("secDataset").onchange=()=>{fillSectionVars(); drawSection();};
   ["sxVar","syVar","scVar","sScale"].forEach(id=>document.getElementById(id).onchange=drawScatter);
-  ["secVar","secScale","secPow"].forEach(id=>document.getElementById(id).onchange=drawSection);
+  ["secVar","secScale","secPow","secLog"].forEach(id=>document.getElementById(id).onchange=drawSection);
   document.getElementById("tblSearch").oninput=drawTable;
   document.getElementById("tDataset").onchange=e=>{
     tblDataset=e.target.value;
@@ -1671,6 +1709,7 @@ function init(){
   document.getElementById("dlCsv").onclick=downloadCsv;
 
   computeYears(); renderYearBar();   // global year filter (after live data is pre-loaded)
+  refreshStationLists();             // populate CTD/Bottle station pickers for the selected year(s)
   aboutStats();
   drawTable();   // about tab visible first; table cheap to prebuild
   if(CHAT_ENABLED){ initLake(); }
