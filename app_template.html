@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lake Winnipeg Field Course · MV NAMAO Data Explorer</title>
+<style>
+  :root{
+    --bg:#0e1726; --panel:#152238; --panel2:#1c2d49; --ink:#e8eef7;
+    --muted:#9fb1cc; --line:#2a3c5e; --accent:#37c7e0; --accent2:#7bdcb5;
+    --warn:#f0a500;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:18px 24px;background:linear-gradient(135deg,#10243f,#0b1a2e);
+    border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:20px;letter-spacing:.2px}
+  header .sub{color:var(--muted);font-size:13px;margin-top:3px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+  nav{display:flex;gap:4px;flex-wrap:wrap;background:var(--panel);
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+  nav button{background:none;border:none;color:var(--muted);padding:13px 16px;
+    font-size:14px;cursor:pointer;border-bottom:2px solid transparent}
+  nav button:hover{color:var(--ink)}
+  nav button.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .navyear{display:flex;gap:11px;align-items:center;margin-left:auto;padding:0 16px;font-size:13px}
+  .navyear .yl{text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-size:11px}
+  .navyear label{display:flex;gap:5px;align-items:center;color:var(--ink);cursor:pointer}
+  main{padding:20px 0 60px}
+  .view{display:none}
+  .view.active{display:block}
+  .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin-bottom:16px}
+  .ctl{display:flex;flex-direction:column;gap:5px}
+  .ctl label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  select,input[type=text]{background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:14px;min-width:160px}
+  select[multiple]{min-width:180px;height:120px}
+  .plot{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:8px;min-height:480px}
+  #mapPlot{height:920px}
+  .grid2{display:grid;grid-template-columns:1fr;gap:16px}
+  .secrow{display:flex;gap:16px;flex-wrap:wrap}
+  .secrow #secPlot,.secrow #liveChart{flex:1 1 520px;min-width:320px}
+  .secmap{flex:0 0 340px;min-height:480px}
+  @media(max-width:900px){.secmap{flex:1 1 100%}}
+  .note{color:var(--muted);font-size:13px;margin:10px 2px 0}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);
+    border-radius:20px;padding:2px 10px;font-size:12px;color:var(--muted);margin:2px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:16px}
+  .card h2{margin:0 0 8px;font-size:17px;color:var(--accent2)}
+  .card h3{margin:18px 0 6px;font-size:15px;color:var(--ink)}
+  .card p,.card li{color:#d3deee}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:10px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent)}
+  .stat .l{font-size:12px;color:var(--muted)}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:5px 8px;text-align:right;white-space:nowrap}
+  th{background:var(--panel2);position:sticky;top:0;cursor:pointer;color:var(--ink)}
+  th:first-child,td:first-child,td.txt,th.txt{text-align:left}
+  td.miss{color:#5d6e8a;font-style:italic}
+  .tablewrap{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  tr:hover td{background:#19293f}
+  button.act{background:var(--accent);color:#04212a;border:none;border-radius:7px;
+    padding:9px 14px;font-weight:600;cursor:pointer;font-size:13px}
+  button.act:hover{filter:brightness(1.08)}
+  a{color:var(--accent)}
+  .legend-help{font-size:12.5px;color:var(--muted);background:var(--panel2);
+    border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 14px;margin-top:12px}
+  code{background:#0b1626;padding:1px 5px;border-radius:4px;color:var(--accent2);font-size:12.5px}
+  .keybar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .keybar input{min-width:300px}
+  .chatlog{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px;height:430px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:82%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;line-height:1.55;font-size:14px}
+  .msg.user{align-self:flex-end;background:var(--accent);color:#04212a}
+  .msg.bot{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+  .msg.err{align-self:center;background:#3a1d24;border:1px solid #6b2b3a;color:#ffb3c0;font-size:13px;max-width:95%}
+  .msg.think{align-self:flex-start;color:var(--muted);font-style:italic}
+  .msg a{color:var(--accent2);text-decoration:underline}
+  .chattbl{border-collapse:collapse;margin:8px 0;font-size:12.5px;width:auto}
+  .chattbl th,.chattbl td{border:1px solid var(--line);padding:4px 8px;text-align:right;white-space:nowrap}
+  .chattbl th:first-child,.chattbl td:first-child{text-align:left}
+  .chattbl th{background:#0e1b30}
+  .live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ff5d5d;
+    margin-right:6px;box-shadow:0 0 0 0 rgba(255,93,93,.7);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,93,.6)}70%{box-shadow:0 0 0 8px rgba(255,93,93,0)}
+    100%{box-shadow:0 0 0 0 rgba(255,93,93,0)}}
+  #liveCards .stat .n{color:var(--accent2)}
+  #liveChart{min-height:380px}
+  #liveMap{min-height:380px}
+  .chatbar{display:flex;gap:10px;margin-top:12px}
+  .chatbar textarea{flex:1;resize:none;height:56px;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:inherit}
+  .chatbar button{flex:0 0 auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>🛥️ Lake Winnipeg Field Course — MV NAMAO Data Explorer</h1>
+    <div class="sub">Limnology &amp; Oceanography Field Course · rosette water chemistry · an interactive companion to Ocean Data View (ODV)</div>
+  </div>
+</header>
+
+<nav class="wrap">
+  <button data-view="about" class="active">About</button>
+  <button data-view="map">Station Map</button>
+  <button data-view="live">🛰️ Live</button>
+  <button data-view="profiles">Bottle Profiles</button>
+  <button data-view="ctd">CTD Casts</button>
+  <button data-view="scatter">Property–Property</button>
+  <button data-view="section">Section</button>
+  <button data-view="table">Data Table</button>
+  <button data-view="lake">💬 Talk to the Lake</button>
+  <div class="navyear" id="yearBar"></div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ABOUT -->
+  <section id="about" class="view active">
+    <div class="card">
+      <h2>Welcome aboard</h2>
+      <p>This is a self-contained explorer for the water-chemistry data your class collected from
+      <strong>Lake Winnipeg</strong> aboard the <strong>MV NAMAO</strong> in June 2025, using rosette/Niskin
+      casts at a series of stations. It runs entirely in your browser — no internet needed — so you can
+      keep it on a USB stick or in Google Drive and open it anywhere.</p>
+      <p>Think of it as a friendly, opinionated sibling to <strong>Ocean Data View (ODV)</strong>. The tabs
+      mirror the core things ODV does, so you can build intuition here and then reproduce — and go beyond —
+      these plots in ODV yourself.</p>
+      <div class="stats" id="aboutStats"></div>
+    </div>
+
+    <div class="card">
+      <h2>Two datasets</h2>
+      <p>This explorer pulls together the two ways you sampled the water column:</p>
+      <ul>
+        <li><strong>Bottle chemistry</strong> — discrete water samples from the rosette/Niskin bottles,
+        analysed in the lab for nutrients, isotopes, carbonate system, major ions and more. A handful of
+        depths per station, but lots of variables. Powers <em>Bottle Profiles</em>, <em>Property–Property</em>,
+        <em>Section</em> and the <em>Data Table</em>.</li>
+        <li><strong>RBR CTD casts</strong> — the sensor package logging ~2 readings per second as it
+        descends, giving high-resolution profiles of temperature, salinity, oxygen, chlorophyll, CDOM,
+        turbidity and PAR. Powers the <em>CTD Casts</em> tab.</li>
+        <li><strong>Live YSI sonde</strong> — real-time Bluetooth + GPS readings you stream and log on the
+        <em>Live</em> tab. Anything you log becomes a third <em>Live sonde</em> dataset you can explore in
+        <em>Property–Property</em>, <em>Section</em> and the <em>Data Table</em>.</li>
+      </ul>
+      <p>The <em>Station Map</em> shows where both were collected, over real satellite imagery.</p>
+    </div>
+
+    <div class="card">
+      <h2>What's in each tab</h2>
+      <h3>🗺️ Station Map</h3>
+      <p>Where every sample was taken, on a pre-fetched satellite basemap (works offline) drawn in the
+      Web-Mercator projection so the lake geometry is honest. Colour-code stations by any bottle variable.
+      This is ODV's <em>Station Map</em>.</p>
+      <h3>📉 Bottle Profiles</h3>
+      <p>A bottle-chemistry variable plotted against depth (deep = bottom), the classic profile. Compare
+      several stations at once to see how the surface bloom, nutrients, or chemistry change with depth.</p>
+      <h3>🌡️ CTD Casts</h3>
+      <p>High-resolution sensor profiles vs depth — temperature, salinity, oxygen and more — for the
+      stations the CTD was deployed at. This is what a continuous cast looks like next to the discrete bottles.</p>
+      <h3>🛰️ Live</h3>
+      <p>Stream and log real-time data from the YSI Bluetooth/GPS sonde — live readouts, a rolling chart, and
+      a moving track on the map. A built-in <em>Demo</em> mode simulates a cast so you can see how it works
+      offline. Logged readings flow into the other tabs as the <em>Live sonde</em> dataset.</p>
+      <h3>🔬 Property–Property</h3>
+      <p>Any variable against any other, optionally colour-coded by a third — exactly ODV's X/Y scatter. Great
+      for spotting relationships (e.g. nutrients vs. chlorophyll, or ion ratios that fingerprint water sources).</p>
+      <h3>🌊 Section</h3>
+      <p>ODV's signature view: stations laid out south→north along the cruise track, depth on the vertical axis,
+      and a variable shown as a smooth colour field. We interpolate between samples (inverse-distance weighting)
+      to mimic ODV's gridded sections — handy, but remember the colour <em>between</em> dots is a guess.</p>
+      <h3>📋 Data Table</h3>
+      <p>The cleaned dataset, sortable and searchable, with a one-click CSV download.</p>
+      <span id="aboutChat"><h3>💬 Talk to the Lake</h3>
+      <p>An online AI assistant that answers questions about this data and its connection to Lake Winnipeg.
+      It's the only tab that needs an internet connection.</p></span>
+    </div>
+
+    <div class="card">
+      <h2>A few honest notes on the data</h2>
+      <ul>
+        <li>Values like <code>N.D.</code> (not detected) and blanks are treated as <strong>missing</strong>,
+        not zero — they're left out of plots and stats.</li>
+        <li>The original file lost its delta symbols, so the isotope columns are shown here as
+        <strong>δ¹⁵N</strong> and <strong>δ¹³C</strong> (‰).</li>
+        <li>Two pH columns (<code>pH [1]</code>, <code>pH [2]</code>) are replicate measurements; many cells are blank.</li>
+        <li>CTD station names were tidied (e.g. <code>STN 59</code> → <strong>S59</strong>); above-water
+        readings (depth ≤ 0) and unphysical negative PAR values are dropped.</li>
+        <li>The satellite basemap was pre-fetched once (Esri World Imagery) and embedded, so the map needs no internet.</li>
+        <li>This is raw teaching data — part of the exercise is judging which numbers look trustworthy.
+        Always sanity-check before drawing conclusions.</li>
+      </ul>
+      <p class="note">Built with Claude Code as a demo of using AI to spin up a custom data tool in minutes.
+      Data: <code>LWFC_2025_RosetteChemistry_Compiled_for_ODV.csv</code>.</p>
+    </div>
+  </section>
+
+  <!-- MAP -->
+  <section id="map" class="view">
+    <div class="controls">
+      <div class="ctl">
+        <label>Colour by</label>
+        <select id="mapVar"></select>
+      </div>
+      <div class="ctl">
+        <label>Depth filter</label>
+        <select id="mapDepth"><option value="surface">Surface (shallowest sample)</option>
+          <option value="all" selected>All depths</option></select>
+      </div>
+      <div class="ctl">
+        <label>Colour scale</label>
+        <select id="mapScale"></select>
+      </div>
+      <div class="ctl">
+        <label>Overlay</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:14px;color:var(--ink);height:38px">
+          <input type="checkbox" id="mapTrack" checked> Live sonde track</label>
+      </div>
+      <div class="ctl">
+        <label>Track colour (sonde)</label>
+        <select id="mapTrackVar"></select>
+      </div>
+      <div class="ctl">
+        <label>Overlay</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:14px;color:var(--ink);height:38px">
+          <input type="checkbox" id="mapStations" checked> Stations</label>
+      </div>
+    </div>
+    <div id="mapPlot" class="plot"></div>
+    <div class="legend-help">Hover a station for its full readout. Marker colour = the selected bottle variable;
+      open grey markers mean that value is missing there. The fine dotted path is the geolocated <b>live sonde
+      track</b>, coloured by the YSI parameter chosen under <em>Track colour</em> (its own colourbar, lower right;
+      red dot = latest fix; toggle with <em>Overlay</em>). Stations from the GPS stop centroids: gold diamonds are
+      <b>FULL stations</b> (sized by stop duration), green dots are quick <b>CTD stops</b>, purple triangles are
+      <b>small-boat (SMBOAT)</b> stations — each station <em>Type</em> gets its own labelled marker.
+      Basemap is offline satellite imagery in Web-Mercator.
+      In ODV this is the <em>Station Map</em> window.</div>
+  </section>
+
+  <!-- LIVE -->
+  <section id="live" class="view">
+    <div class="controls">
+      <div class="ctl"><label>Source</label><select id="liveSource">
+        <option value="demo">Demo (simulated)</option>
+        <option value="ble">YSI Bluetooth</option></select></div>
+      <div class="ctl"><label>&nbsp;</label><button class="act" id="liveStart">▶ Start</button></div>
+      <div class="ctl"><label>&nbsp;</label><button class="act" id="liveStop">⏸ Stop</button></div>
+      <div class="ctl"><label>&nbsp;</label><button class="act" id="liveClear">🗑 Clear log</button></div>
+      <div class="ctl"><label>&nbsp;</label><button class="act" id="liveCsv">⬇ CSV (sonde+GPS, ODV)</button></div>
+      <div class="ctl"><label>&nbsp;</label><label class="act" style="cursor:pointer">📁 Load KorDSS CSV<input type="file" id="liveFile" accept=".csv,text/csv" style="display:none"></label></div>
+      <div class="ctl"><label>&nbsp;</label><label class="act" style="cursor:pointer">📍 Load GPS (GPX/KML)<input type="file" id="liveGpx" accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml,text/xml" style="display:none"></label></div>
+      <div class="ctl"><label>GPS offset (min)</label><input type="number" id="gpsOffset" value="0" step="1" style="width:84px"></div>
+      <div class="ctl"><label>Chart variable</label><select id="liveVar"></select></div>
+    </div>
+    <div id="liveStatus" class="legend-help">Idle — press <strong>Start</strong> to begin streaming.</div>
+    <div id="liveCards" class="stats"></div>
+    <div class="secrow">
+      <div id="liveChart" class="plot"></div>
+      <div id="liveMap" class="plot secmap"></div>
+    </div>
+    <div class="legend-help"><b>Demo</b> mode streams realistic simulated readings so you can see how a live
+      cast looks and how it flows into the other tabs. <b>YSI Bluetooth</b> connects to a real sonde — it needs
+      Chrome/Edge served over <code>https://</code> or <code>localhost</code> (not a file opened from Drive),
+      and the sonde's Bluetooth profile must be configured in the code. <b>Load KorDSS CSV</b> imports a real
+      logged export (Latin-1) — sensor columns map automatically; if the file has no GPS, the track map and
+      Section stay empty until positions are added. Everything appears as the <b>Live sonde</b> dataset in
+      Property–Property, Section and the Data Table.</div>
+  </section>
+
+  <!-- PROFILES -->
+  <section id="profiles" class="view">
+    <div class="controls">
+      <div class="ctl">
+        <label>Variable</label>
+        <select id="profVar"></select>
+      </div>
+      <div class="ctl">
+        <label>Stations (ctrl/⌘-click for several)</label>
+        <select id="profStations" multiple></select>
+      </div>
+    </div>
+    <div id="profPlot" class="plot"></div>
+    <div class="legend-help">Depth increases downward, like a real water column. Each line is one station's
+      bottle cast. This is ODV's vertical-profile window.</div>
+  </section>
+
+  <!-- CTD -->
+  <section id="ctd" class="view">
+    <div class="controls">
+      <div class="ctl">
+        <label>Variable</label>
+        <select id="ctdVar"></select>
+      </div>
+      <div class="ctl">
+        <label>Stations (ctrl/⌘-click for several)</label>
+        <select id="ctdStations" multiple></select>
+      </div>
+    </div>
+    <div id="ctdPlot" class="plot"></div>
+    <div class="legend-help">High-resolution RBR CTD profiles (~2 readings/second). Each cast usually shows
+      both the down- and up-trace, so a little looping is normal. Above-water readings and impossible
+      negative PAR values have been dropped. Compare with the discrete <em>Bottle Profiles</em> for the same stations.</div>
+  </section>
+
+  <!-- SCATTER -->
+  <section id="scatter" class="view">
+    <div class="controls">
+      <div class="ctl"><label>Dataset</label><select id="sDataset">
+        <option value="bottle">Bottle chemistry</option>
+        <option value="ctd">CTD sensors</option>
+        <option value="live">Live sonde</option></select></div>
+      <div class="ctl"><label>X axis</label><select id="sxVar"></select></div>
+      <div class="ctl"><label>Y axis</label><select id="syVar"></select></div>
+      <div class="ctl"><label>Colour by</label><select id="scVar"></select></div>
+      <div class="ctl"><label>Colour scale</label><select id="sScale"></select></div>
+    </div>
+    <div id="scatPlot" class="plot"></div>
+    <div class="legend-help"><b>Bottle:</b> try Si or NO₃ (x) vs Chl a (y), or Ca/Na vs Mg/Na to fingerprint
+      water sources. <b>CTD:</b> try Salinity (x) vs Temperature (y) coloured by depth — a freshwater take on
+      the classic ODV T–S diagram. This is ODV's property–property (X/Y) plot.</div>
+  </section>
+
+  <!-- SECTION -->
+  <section id="section" class="view">
+    <div class="controls">
+      <div class="ctl"><label>Dataset</label><select id="secDataset">
+        <option value="bottle">Bottle chemistry</option>
+        <option value="ctd">CTD sensors</option>
+        <option value="live">Live sonde</option></select></div>
+      <div class="ctl"><label>Variable</label><select id="secVar"></select></div>
+      <div class="ctl"><label>Colour scale</label><select id="secScale"></select></div>
+      <div class="ctl"><label>Smoothing (IDW power)</label>
+        <select id="secPow"><option value="1">Low (1)</option>
+          <option value="2" selected>Medium (2)</option>
+          <option value="4">High (4)</option></select></div>
+    </div>
+    <div class="secrow">
+      <div id="secPlot" class="plot"></div>
+      <div id="secMap" class="plot secmap"></div>
+    </div>
+    <div class="legend-help">The x-axis follows the cruise track as an inverted V (southwest, up to the
+      northern apex, back down southeast) — for <b>bottle</b> data
+      <code>S1 → S2 → W12 → S59 → W10 → W9 → CS1 → S7</code>; the denser <b>CTD</b> track adds the transect
+      stops along the same path. The inset shows the station order. Colour is interpolated between the samples
+      (black dots shown for bottle data) — treat the smooth field as an estimate, not a measurement. This
+      mirrors ODV's gridded <em>Section</em>.</div>
+  </section>
+
+  <!-- TABLE -->
+  <section id="table" class="view">
+    <div class="controls">
+      <div class="ctl"><label>Dataset</label><select id="tDataset">
+        <option value="bottle">Bottle chemistry</option>
+        <option value="ctd">CTD sensors</option>
+        <option value="live">Live sonde</option></select></div>
+      <div class="ctl"><label>Search (station / date)</label>
+        <input type="text" id="tblSearch" placeholder="e.g. S59 or 2025-06-18"></div>
+      <div class="ctl"><label>&nbsp;</label><button class="act" id="dlCsv">⬇ Download cleaned CSV</button></div>
+    </div>
+    <div class="note" id="tblInfo"></div>
+    <div class="tablewrap"><table id="dataTable"></table></div>
+    <div class="legend-help">Click any column header to sort. Missing values are shown as <em>—</em>.</div>
+  </section>
+
+  <!-- TALK TO THE LAKE -->
+  <section id="lake" class="view">
+    <div class="card">
+      <h2>💬 Talk to the Lake</h2>
+      <p>Ask questions about this dataset and how it relates to Lake Winnipeg — e.g.
+      <em>"Why is chlorophyll so high at S2 but low just below the surface?"</em> or
+      <em>"What do the Ca/Na and Mg/Na ratios suggest about where the water comes from?"</em>
+      You'll need an <strong>internet connection</strong>, and answers can take up to a minute.</p>
+    </div>
+    <div class="legend-help">⚠️ The assistant can be wrong — treat it as a study buddy, not a citation. It
+      sees the full bottle dataset and a per-station summary of the CTD casts (not every raw row). Always
+      cross-check its answers against the plots and the data table.</div>
+    <div id="chatLog" class="chatlog"></div>
+    <div class="chatbar">
+      <textarea id="chatInput" placeholder="Ask about the data or the lake…  (Enter to send · Shift+Enter for a new line)"></textarea>
+      <button class="act" id="chatSend">Send</button>
+    </div>
+  </section>
+
+</main>
+
+<script>/*__PLOTLY__*/</script>
+<script>
+const DATA = /*__DATA__*/;
+const VARS = /*__VARS__*/;
+const CTD = /*__CTD__*/;
+const CTDVARS = /*__CTDVARS__*/;
+const CTDSTATIONS = /*__CTDSTATIONS__*/;
+const BASEMAP = /*__BASEMAP__*/;
+const PRELIVE = /*__PRELIVE__*/;   // real YSI sonde data (CSV+GPX) baked in at build time
+const STATIONS = /*__STATIONS__*/; // sonde stop centroids (FULL / CTD) from the GPS tracks
+
+// ---- global YEAR filter ----------------------------------------------------
+let AVAILABLE_YEARS = [];
+let SELECTED_YEARS = new Set();
+const yrBottle = d => SELECTED_YEARS.has(+String(d.date).slice(0,4));
+const yrCTD = r => SELECTED_YEARS.has(+String(CTD.date[r]).slice(0,4));
+const yrLive = r => SELECTED_YEARS.has(new Date(LIVE.t[r]).getFullYear());
+function computeYears(){
+  const s=new Set();
+  DATA.forEach(d=>{ const y=+String(d.date).slice(0,4); if(y) s.add(y); });
+  CTD.date.forEach(d=>{ const y=+String(d).slice(0,4); if(y) s.add(y); });
+  LIVE.t.forEach(t=>{ const y=new Date(t).getFullYear(); if(y) s.add(y); });
+  AVAILABLE_YEARS=[...s].sort();
+  SELECTED_YEARS=new Set(AVAILABLE_YEARS);
+}
+function rerenderActive(){
+  const a=document.querySelector(".view.active"); if(!a) return;
+  if(a.id==="about") aboutStats();
+  else if(RENDER[a.id]) RENDER[a.id]();
+}
+function renderYearBar(){
+  const bar=document.getElementById("yearBar");
+  if(AVAILABLE_YEARS.length<=1){ bar.style.display="none"; return; }
+  bar.innerHTML='<span class="yl" title="Filters every tab">Year</span>'+
+    AVAILABLE_YEARS.map(y=>`<label><input type="checkbox" data-year="${y}" ${SELECTED_YEARS.has(y)?"checked":""}> ${y}</label>`).join("");
+  bar.querySelectorAll("input").forEach(cb=>cb.onchange=()=>{
+    const y=+cb.dataset.year;
+    if(cb.checked) SELECTED_YEARS.add(y); else SELECTED_YEARS.delete(y);
+    if(SELECTED_YEARS.size===0){ SELECTED_YEARS.add(y); cb.checked=true; return; }  // keep at least one
+    rerenderActive();
+  });
+}
+
+// web-mercator helpers (y increases southward; map axis is reversed for north-up)
+const lon2x = lon => (lon+180)/360;
+const lat2y = lat => {const s=Math.sin(lat*Math.PI/180);
+  return 0.5 - Math.log((1+s)/(1-s))/(4*Math.PI);};
+
+// ---- helpers ----------------------------------------------------------------
+const byKey = Object.fromEntries(VARS.map(v => [v.key, v]));
+const numVars = VARS.filter(v => !["date","station"].includes(v.key));
+const META = ["date","station"];
+const SCALES = ["Viridis","Jet","Portland","Cividis","YlGnBu","Turbo","Electric","RdBu"];
+const isNum = x => typeof x === "number" && !isNaN(x);
+const fmt = x => isNum(x) ? (Math.abs(x)>=100 ? x.toFixed(0) : Math.abs(x)>=1 ? x.toFixed(2) : x.toFixed(3)) : "—";
+
+function fillVarSelect(el, keys, selected){
+  el.innerHTML = "";
+  for (const v of keys){
+    const o = document.createElement("option");
+    o.value = v.key; o.textContent = v.label;
+    if (v.key === selected) o.selected = true;
+    el.appendChild(o);
+  }
+}
+function fillScale(el, sel){
+  el.innerHTML = "";
+  for (const s of SCALES){
+    const o=document.createElement("option"); o.value=s; o.textContent=s;
+    if(s===sel)o.selected=true; el.appendChild(o);
+  }
+}
+const baseLayout = () => ({
+  paper_bgcolor:"#152238", plot_bgcolor:"#0e1726",
+  font:{color:"#e8eef7"}, margin:{l:64,r:24,t:30,b:56},
+  hoverlabel:{bgcolor:"#1c2d49",bordercolor:"#37c7e0"},
+  dragmode:"pan",            // drag pans the plot surface...
+});
+const CFG = {responsive:true, displaylogo:false,
+  scrollZoom:true,           // ...scroll wheel zooms...
+  doubleClick:"reset+autosize", // ...double-click resets to full view
+  modeBarButtonsToRemove:["lasso2d","select2d"]};
+
+// haversine km
+function hav(la1,lo1,la2,lo2){
+  const R=6371,d=Math.PI/180;
+  const dla=(la2-la1)*d, dlo=(lo2-lo1)*d;
+  const a=Math.sin(dla/2)**2+Math.cos(la1*d)*Math.cos(la2*d)*Math.sin(dlo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+// ---- tabs -------------------------------------------------------------------
+const drawn = {};
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick = () => {
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    const v = b.dataset.view;
+    document.getElementById(v).classList.add("active");
+    if (RENDER[v]) { RENDER[v](); }            // (re)draw so sizing is correct
+  };
+});
+
+// ---- ABOUT stats ------------------------------------------------------------
+function aboutStats(){
+  const bot = DATA.filter(yrBottle);
+  const stations = new Set(bot.map(d=>d.station)).size;
+  const dates = new Set(bot.map(d=>d.date));
+  const maxd = bot.length ? Math.max(...bot.map(d=>d.depth).filter(isNum)) : 0;
+  let ctdN=0; for(let r=0;r<CTD.depth.length;r++) if(yrCTD(r)) ctdN++;
+  let liveN=0; for(let r=0;r<LIVE.t.length;r++) if(yrLive(r)) liveN++;
+  const cells = [
+    [bot.length,"bottle samples"],
+    [stations,"bottle stations"],
+    [dates.size,"sampling days"],
+    [ctdN.toLocaleString(),"CTD readings"],
+    [liveN.toLocaleString(),"live sonde rows"],
+    [maxd+" m","max depth"],
+  ];
+  document.getElementById("aboutStats").innerHTML =
+    cells.map(c=>`<div class="stat"><div class="n">${c[0]}</div><div class="l">${c[1]}</div></div>`).join("");
+}
+
+// ---- MAP --------------------------------------------------------------------
+function drawMap(){
+  const vk = document.getElementById("mapVar").value;
+  const scale = document.getElementById("mapScale").value;
+  const dmode = document.getElementById("mapDepth").value;
+  let rows = DATA.filter(d=>isNum(d.lat)&&isNum(d.lon)&&yrBottle(d));
+  if (dmode==="surface"){
+    // keep only the shallowest sample of each station occupation (station + date)
+    const best={};
+    rows.forEach(d=>{
+      const k=d.station+"|"+d.date;
+      const dep=isNum(d.depth)?d.depth:Infinity;
+      if(!(k in best) || dep<best[k]._dep){ best[k]={...d,_dep:dep}; }
+    });
+    rows=Object.values(best);
+  }
+
+  const have = rows.filter(d=>isNum(d[vk]));
+  const miss = rows.filter(d=>!isNum(d[vk]));
+  const lbl = byKey[vk].label;
+  const text = r => `<b>${r.station}</b> — ${r.date}<br>${fmt(r.lat)}°N, ${fmt(Math.abs(r.lon))}°W`+
+    `<br>Depth ${fmt(r.depth)} m<br>${lbl}: <b>${fmt(r[vk])}</b>`;
+  const px = r => lon2x(r.lon), py = r => lat2y(r.lat);
+
+  const traces=[];
+  // live sonde track overlay (geolocated points), coloured by a chosen YSI parameter
+  const showTrack = (document.getElementById("mapTrack")||{}).checked;
+  const trackVar = (document.getElementById("mapTrackVar")||{}).value || "spcond";
+  let trackColored=false;
+  if (showTrack){
+    const tlon=[], tlat=[], tval=[], tlx=[], tly=[]; let lastT=null;
+    for (let i=0;i<LIVE.t.length;i++){ if(isNum(LIVE.lat[i])&&isNum(LIVE.lon[i])&&yrLive(i)){
+      const X=lon2x(LIVE.lon[i]), Y=lat2y(LIVE.lat[i]);
+      if(lastT!==null && LIVE.t[i]-lastT>1800000){ tlx.push(null); tly.push(null); }
+      tlon.push(X); tlat.push(Y); tval.push(isNum(LIVE[trackVar][i])?LIVE[trackVar][i]:null);
+      tlx.push(X); tly.push(Y); lastT=LIVE.t[i]; } }
+    if (tlon.length){
+      const tmeta=liveScByKey[trackVar]||{short:trackVar,label:trackVar};
+      const txt = (v,k)=>`<b>Sonde</b> ${new Date(LIVE.t[k]).toLocaleTimeString()}<br>${tmeta.label}: <b>${fmt(v)}</b>`;
+      trackColored=tval.some(isNum);
+      traces.push({type:"scattergl", mode:"lines", x:tlx, y:tly,        // faint path (broken at >30 min gaps)
+        line:{color:"rgba(55,199,224,.35)", width:1}, hoverinfo:"skip", showlegend:false});
+      traces.push({type:"scattergl", mode:"markers", x:tlon, y:tlat, showlegend:false,
+        hovertext:tval.map((v,k)=>txt(v,k)), hoverinfo:"text",
+        marker: trackColored
+          ? {size:5, color:tval, colorscale:"Portland", showscale:true,
+             colorbar:{title:{text:"Sonde "+tmeta.short, side:"right"}, thickness:13, len:0.46,
+               x:1.0, xanchor:"left", y:0, yanchor:"bottom", bgcolor:"rgba(14,23,38,.6)"}}
+          : {size:4, color:"#37c7e0"}});
+      traces.push({type:"scatter", mode:"markers", x:[tlon[tlon.length-1]], y:[tlat[tlat.length-1]],
+        marker:{size:10,color:"#ff5d5d",line:{width:1.5,color:"#fff"}}, hoverinfo:"skip", showlegend:false});
+    }
+  }
+  if (have.length) traces.push({
+    type:"scatter", mode:"markers+text", name:lbl, showlegend:false,
+    x:have.map(px), y:have.map(py),
+    text:have.map(d=>d.station), textposition:"top center",
+    textfont:{size:10,color:"#eef4ff"},
+    hovertext:have.map(text), hoverinfo:"text",
+    marker:{size:15, color:have.map(d=>d[vk]), colorscale:scale, showscale:true,
+      line:{width:1.4,color:"#ffffff"},
+      colorbar:{title:{text:lbl,side:"right"}, thickness:14,
+        len: trackColored?0.46:0.85, x:1.0, xanchor:"left",
+        y: trackColored?1:0.5, yanchor: trackColored?"top":"middle",
+        bgcolor:"rgba(14,23,38,.6)"}},
+  });
+  if (miss.length) traces.push({
+    type:"scatter", mode:"markers", name:"no value", showlegend:false,
+    x:miss.map(px), y:miss.map(py),
+    hovertext:miss.map(text), hoverinfo:"text",
+    marker:{size:12,color:"rgba(0,0,0,0)",symbol:"circle-open",
+      line:{width:2,color:"#ffffff"}},
+  });
+
+  // sonde stop stations overlay — one labelled marker style per station Type
+  if((document.getElementById("mapStations")||{}).checked && STATIONS.length){
+    const inYr = s => { const y=+String(s.date).slice(0,4); return (!y||isNaN(y)) ? true : SELECTED_YEARS.has(y); };
+    const sht = s=>`<b>${s.name}</b> · ${s.type}`+(s.date?`<br>${s.date} ${s.start}${s.end?"–"+s.end:""}`:"")+(s.dur?`<br>${fmt(s.dur)} min`:"");
+    const STYP={
+      CTD:   {symbol:"circle",      color:"#7bdcb5", label:false, size:()=>12, out:"#0e1726"},
+      FULL:  {symbol:"diamond",     color:"#f0a500", label:true,  size:s=>Math.min(28,11+s.dur/8), out:"#ffffff"},
+      SMBOAT:{symbol:"triangle-up", color:"#b388ff", label:true,  size:()=>14, out:"#ffffff"},
+    };
+    const DEF={symbol:"square", color:"#ff6b6b", label:true, size:()=>13, out:"#ffffff"};
+    const byType={};
+    STATIONS.filter(inYr).forEach(s=>{ (byType[s.type]=byType[s.type]||[]).push(s); });
+    Object.keys(byType).sort(a=>a==="CTD"?-1:1).forEach(tp=>{   // dots underneath, labels on top
+      const arr=byType[tp], st=STYP[tp]||DEF;
+      traces.push({type:"scatter", mode: st.label?"markers+text":"markers", showlegend:false,
+        x:arr.map(s=>lon2x(s.lon)), y:arr.map(s=>lat2y(s.lat)),
+        text: st.label?arr.map(s=>s.name):undefined, textposition:"top center",
+        textfont:{size:10,color:"#ffe7b3"},
+        marker:{symbol:st.symbol, size:arr.map(st.size), color:st.color, line:{width:1.4,color:st.out}},
+        hovertext:arr.map(sht), hoverinfo:"text"});
+    });
+  }
+
+  const lay = baseLayout();
+  lay.images = BASEMAP.tiles.map(t=>({source:t.uri, xref:"x", yref:"y",
+    x:t.x0, y:t.y0, sizex:t.x1-t.x0, sizey:t.y1-t.y0,
+    xanchor:"left", yanchor:"top", sizing:"stretch", layer:"below"}));
+  lay.xaxis = {title:"Longitude", range:BASEMAP.xrange.slice(), zeroline:false,
+    tickmode:"array", tickvals:BASEMAP.lonTicks.map(t=>t.v),
+    ticktext:BASEMAP.lonTicks.map(t=>t.t), gridcolor:"rgba(255,255,255,.18)",
+    constrain:"domain"};
+  lay.yaxis = {title:"Latitude", range:[BASEMAP.yrange[0],BASEMAP.yrange[1]], zeroline:false,
+    tickmode:"array", tickvals:BASEMAP.latTicks.map(t=>t.v),
+    ticktext:BASEMAP.latTicks.map(t=>t.t), gridcolor:"rgba(255,255,255,.18)",
+    scaleanchor:"x", scaleratio:1, constrain:"domain"};
+  lay.annotations=[{text:BASEMAP.attribution, showarrow:false,
+    xref:"paper", yref:"paper", x:1, y:0, xanchor:"right", yanchor:"bottom",
+    font:{size:9,color:"#cfd9e8"}, bgcolor:"rgba(14,23,38,.55)"}];
+  lay.showlegend=false;
+  Plotly.react("mapPlot", traces, lay, CFG);
+}
+
+// ---- PROFILES ---------------------------------------------------------------
+const PAL=["#37c7e0","#7bdcb5","#f0a500","#ff6b6b","#b388ff","#ffd166","#06d6a0","#ef476f","#a0c4ff"];
+function drawProfiles(){
+  const vk = document.getElementById("profVar").value;
+  const sel = [...document.getElementById("profStations").selectedOptions].map(o=>o.value);
+  const lbl = byKey[vk].label;
+  const traces=[];
+  sel.forEach((st,i)=>{
+    const rows = DATA.filter(d=>d.station===st && isNum(d[vk]) && isNum(d.depth) && yrBottle(d))
+                     .sort((a,b)=>a.depth-b.depth);
+    if(!rows.length) return;
+    traces.push({
+      type:"scatter", mode:"lines+markers", name:st,
+      x:rows.map(d=>d[vk]), y:rows.map(d=>d.depth),
+      marker:{size:9}, line:{width:2, color:PAL[i%PAL.length]},
+      hovertemplate:`<b>${st}</b><br>${lbl}: %{x}<br>Depth: %{y} m<extra></extra>`,
+    });
+  });
+  const lay = baseLayout();
+  lay.xaxis={title:lbl, gridcolor:"#24364f", side:"top"};
+  lay.yaxis={title:"Depth (m)", autorange:"reversed", gridcolor:"#24364f"};
+  lay.legend={orientation:"h", y:-0.12};
+  lay.margin.t=46;
+  if(!traces.length){
+    Plotly.react("profPlot",[],Object.assign(lay,{
+      annotations:[{text:"No data for this variable at the selected stations.",
+        showarrow:false,font:{color:"#9fb1cc"}}]}),CFG);
+    return;
+  }
+  Plotly.react("profPlot", traces, lay, CFG);
+}
+
+// ---- CTD CASTS --------------------------------------------------------------
+const ctdByKey = Object.fromEntries(CTDVARS.map(v=>[v.key,v]));
+// for property–property & section, depth is also selectable; lat→distance for sections
+const CTD_SCVARS = [{key:"depth",short:"Depth",label:"Depth (m)"}, ...CTDVARS];
+const ctdScByKey = Object.fromEntries(CTD_SCVARS.map(v=>[v.key,v]));
+const CTD_LATMIN = Math.min(...CTD.lat);
+const ctdNorthing = lat => (lat - CTD_LATMIN) * 111.32;   // km south→north
+function drawCtd(){
+  const vk = document.getElementById("ctdVar").value;
+  const sel = [...document.getElementById("ctdStations").selectedOptions].map(o=>+o.value);
+  const lbl = ctdByKey[vk].label;
+  const N = CTD.depth.length;
+  const traces=[];
+  sel.forEach((si,i)=>{
+    const d=[], v=[];
+    for(let r=0;r<N;r++){
+      if(CTD.st[r]!==si || !yrCTD(r)) continue;
+      const val=CTD[vk][r], dep=CTD.depth[r];
+      if(!isNum(val)||!isNum(dep)) continue;
+      d.push(dep); v.push(val);
+    }
+    if(!v.length) return;
+    const order=d.map((_,k)=>k).sort((a,b)=>d[a]-d[b]);
+    traces.push({
+      type:"scattergl", mode:"markers", name:CTDSTATIONS[si],
+      x:order.map(k=>v[k]), y:order.map(k=>d[k]),
+      marker:{size:4, color:PAL[i%PAL.length]},
+      hovertemplate:`<b>${CTDSTATIONS[si]}</b><br>${lbl}: %{x}<br>Depth: %{y} m<extra></extra>`,
+    });
+  });
+  const lay=baseLayout();
+  lay.xaxis={title:lbl, gridcolor:"#24364f", side:"top"};
+  lay.yaxis={title:"Depth (m)", autorange:"reversed", gridcolor:"#24364f"};
+  lay.legend={orientation:"h", y:-0.12};
+  lay.margin.t=46;
+  if(!traces.length){
+    Plotly.react("ctdPlot",[],Object.assign(lay,{annotations:[{
+      text:"No CTD data for this variable at the selected stations.",
+      showarrow:false,font:{color:"#9fb1cc"}}]}),CFG);
+    return;
+  }
+  Plotly.react("ctdPlot", traces, lay, CFG);
+}
+
+// ---- SCATTER (property–property) --------------------------------------------
+function drawScatter(){
+  const ds=document.getElementById("sDataset").value;
+  const xk=document.getElementById("sxVar").value;
+  const yk=document.getElementById("syVar").value;
+  const ck=document.getElementById("scVar").value;
+  const scale=document.getElementById("sScale").value;
+  const colored = ck!=="__none__";
+  const lay=baseLayout();
+
+  if(ds==="ctd"){
+    const lk=ctdScByKey;
+    const N=CTD.depth.length, stride=Math.max(1,Math.ceil(N/4000));
+    const xs=[],ys=[],cs=[],ht=[];
+    for(let r=0;r<N;r+=stride){
+      const xv=CTD[xk][r], yv=CTD[yk][r];
+      if(!isNum(xv)||!isNum(yv)||!yrCTD(r)) continue;
+      xs.push(xv); ys.push(yv);
+      if(colored) cs.push(isNum(CTD[ck][r])?CTD[ck][r]:null);
+      ht.push(`<b>${CTDSTATIONS[CTD.st[r]]}</b> (${fmt(CTD.depth[r])} m)<br>`+
+        `${lk[xk].short}: ${fmt(xv)}<br>${lk[yk].short}: ${fmt(yv)}`+
+        (colored?`<br>${lk[ck].short}: ${fmt(CTD[ck][r])}`:""));
+    }
+    const trace={type:"scattergl", mode:"markers", x:xs, y:ys,
+      hovertext:ht, hoverinfo:"text",
+      marker: colored
+        ? {size:6, color:cs, colorscale:scale, showscale:true,
+           colorbar:{title:{text:lk[ck].label,side:"right"},thickness:14,len:.85}}
+        : {size:6, color:"#37c7e0"}};
+    lay.xaxis={title:lk[xk].label, gridcolor:"#24364f"};
+    lay.yaxis={title:lk[yk].label, gridcolor:"#24364f"};
+    Plotly.react("scatPlot",[trace],lay,CFG);
+    return;
+  }
+
+  if(ds==="live"){
+    const lk=liveScByKey, n=LIVE.depth.length, xs=[],ys=[],cs=[],ht=[];
+    for(let r=0;r<n;r++){
+      const xv=LIVE[xk][r], yv=LIVE[yk][r];
+      if(!isNum(xv)||!isNum(yv)||!yrLive(r)) continue;
+      xs.push(xv); ys.push(yv);
+      if(colored) cs.push(isNum(LIVE[ck][r])?LIVE[ck][r]:null);
+      ht.push(`${new Date(LIVE.t[r]).toLocaleTimeString()} (${fmt(LIVE.depth[r])} m)<br>`+
+        `${lk[xk].short}: ${fmt(xv)}<br>${lk[yk].short}: ${fmt(yv)}`+
+        (colored?`<br>${lk[ck].short}: ${fmt(LIVE[ck][r])}`:""));
+    }
+    if(!xs.length){ emptyPlot("scatPlot","No live data yet — open the Live tab and press Start."); return; }
+    const trace={type:"scattergl", mode:"markers", x:xs, y:ys, hovertext:ht, hoverinfo:"text",
+      marker: colored
+        ? {size:7, color:cs, colorscale:scale, showscale:true,
+           colorbar:{title:{text:lk[ck].label,side:"right"},thickness:14,len:.85}}
+        : {size:7, color:"#7bdcb5"}};
+    lay.xaxis={title:lk[xk].label, gridcolor:"#24364f"};
+    lay.yaxis={title:lk[yk].label, gridcolor:"#24364f"};
+    Plotly.react("scatPlot",[trace],lay,CFG);
+    return;
+  }
+
+  const rows=DATA.filter(d=>isNum(d[xk])&&isNum(d[yk])&&yrBottle(d));
+  const cvals = colored ? rows.map(d=>isNum(d[ck])?d[ck]:null) : null;
+  const trace={
+    type:"scatter", mode:"markers",
+    x:rows.map(d=>d[xk]), y:rows.map(d=>d[yk]),
+    hovertext:rows.map(d=>`<b>${d.station}</b> (${fmt(d.depth)} m)<br>`+
+      `${byKey[xk].short}: ${fmt(d[xk])}<br>${byKey[yk].short}: ${fmt(d[yk])}`+
+      (colored?`<br>${byKey[ck].short}: ${fmt(d[ck])}`:"")),
+    hoverinfo:"text",
+    marker: colored
+      ? {size:13, color:cvals, colorscale:scale, showscale:true,
+         line:{width:1,color:"#0e1726"},
+         colorbar:{title:{text:byKey[ck].label,side:"right"},thickness:14,len:.85}}
+      : {size:13, color:"#37c7e0", line:{width:1,color:"#0e1726"}},
+  };
+  lay.xaxis={title:byKey[xk].label, gridcolor:"#24364f"};
+  lay.yaxis={title:byKey[yk].label, gridcolor:"#24364f"};
+  Plotly.react("scatPlot",[trace],lay,CFG);
+}
+
+// ---- SECTION (IDW interpolation) -------------------------------------------
+// cruise track as an inverted V: SW → north apex → SE
+const SECTION_ORDER = ["S1","S2","W12","S59","W10","W9","CS1","S7"];
+function stationOrder(){
+  // mean position per station; ordered along the cruise track, cumulative distance
+  const groups={};
+  DATA.forEach(d=>{ if(isNum(d.lat)&&isNum(d.lon)){
+    (groups[d.station]=groups[d.station]||[]).push(d);} });
+  const mean = st => {const g=groups[st];
+    return {st, lat:g.reduce((s,d)=>s+d.lat,0)/g.length,
+                lon:g.reduce((s,d)=>s+d.lon,0)/g.length};};
+  const inOrder = SECTION_ORDER.filter(st=>groups[st]);
+  const extra = Object.keys(groups).filter(st=>!SECTION_ORDER.includes(st));
+  let sts = [...inOrder, ...extra].map(mean);
+  let cum=0;
+  sts.forEach((s,i)=>{ if(i>0) cum+=hav(sts[i-1].lat,sts[i-1].lon,s.lat,s.lon); s.dist=cum; });
+  return sts;
+}
+// CTD cruise track as an inverted V (SW → north apex → SE). Each entry is a node.
+// The three co-located S59 casts run S59 → T7 → S59 (Day 3) (labels deduped for display).
+const CTD_SECTION_NODES = [
+  ["S1 Red River"],["S2"],["Transect"],
+  ["S59"],["T7"],["S59 (Day 3)"],
+  ["T13"],["T6"],["T5"],["W10"],["T4"],["T3"],["T2"],["W9"],
+  ["T1"],["CS1"],["T11"],["T12"],["T9"],["T10"],["T8"],["S7"],
+];
+// ordered nodes with mean position + cumulative along-track distance
+function ctdStationOrder(){
+  const agg={}, N=CTD.depth.length;
+  for(let r=0;r<N;r++){
+    const st=CTDSTATIONS[CTD.st[r]];
+    (agg[st]=agg[st]||{slat:0,slon:0,n:0});
+    agg[st].slat+=CTD.lat[r]; agg[st].slon+=CTD.lon[r]; agg[st].n++;
+  }
+  const used=new Set();
+  let nodes=[];
+  for(const members of CTD_SECTION_NODES){
+    let slat=0,slon=0,n=0;
+    for(const m of members) if(agg[m]){slat+=agg[m].slat; slon+=agg[m].slon; n+=agg[m].n; used.add(m);}
+    if(n>0) nodes.push({st:members[0], members, lat:slat/n, lon:slon/n});
+  }
+  // safety: append any unlisted stations (by latitude) so none are silently dropped
+  Object.keys(agg).filter(s=>!used.has(s))
+    .sort((a,b)=>agg[a].slat/agg[a].n - agg[b].slat/agg[b].n)
+    .forEach(s=>nodes.push({st:s, members:[s], lat:agg[s].slat/agg[s].n, lon:agg[s].slon/agg[s].n}));
+  let cum=0;
+  nodes.forEach((nd,i)=>{ if(i>0) cum+=hav(nodes[i-1].lat,nodes[i-1].lon,nd.lat,nd.lon); nd.dist=cum; });
+  return nodes;
+}
+function drawSectionMap(ordered){
+  const xs=ordered.map(s=>lon2x(s.lon)), ys=ordered.map(s=>lat2y(s.lat));
+  // dedupe labels for co-located nodes (e.g. the S59 cluster) using along-track distance
+  let last=-Infinity;
+  const labels=ordered.map(s=>{
+    if((s.dist??0)-last>0.8){last=s.dist??0; return s.st;}
+    return "";
+  });
+  const path={type:"scatter", mode:"lines+markers+text",
+    x:xs, y:ys, text:labels, textposition:"top center",
+    textfont:{size:9,color:"#ffffff"},
+    line:{color:"#f0a500",width:2},
+    marker:{size:8,color:"#f0a500",line:{width:1.2,color:"#ffffff"}},
+    hovertext:ordered.map((s,i)=>`#${i+1} · <b>${s.st}</b><br>${fmt(s.lat)}°N, ${fmt(Math.abs(s.lon))}°W`),
+    hoverinfo:"text"};
+  const start={type:"scatter", mode:"markers", x:[xs[0]], y:[ys[0]],
+    marker:{size:13,color:"#37c7e0",line:{width:2,color:"#ffffff"}},
+    hovertext:[`Start · ${ordered[0].st}`], hoverinfo:"text"};
+  const lay=baseLayout();
+  lay.margin={l:8,r:8,t:28,b:8};
+  lay.images=BASEMAP.tiles.map(t=>({source:t.uri,xref:"x",yref:"y",
+    x:t.x0,y:t.y0,sizex:t.x1-t.x0,sizey:t.y1-t.y0,
+    xanchor:"left",yanchor:"top",sizing:"stretch",layer:"below"}));
+  lay.xaxis={range:BASEMAP.xrange.slice(), visible:false, constrain:"domain"};
+  lay.yaxis={range:[BASEMAP.yrange[0],BASEMAP.yrange[1]], scaleanchor:"x",
+    scaleratio:1, visible:false, constrain:"domain"};
+  lay.showlegend=false;
+  lay.title={text:"Station order along track",font:{size:12,color:"#9fb1cc"},
+    x:0.5,xanchor:"center",y:0.99,yanchor:"top"};
+  lay.annotations=[{text:"Esri, Maxar, Earthstar Geographics",showarrow:false,
+    xref:"paper",yref:"paper",x:1,y:0,xanchor:"right",yanchor:"bottom",
+    font:{size:8,color:"#cfd9e8"},bgcolor:"rgba(14,23,38,.55)"}];
+  Plotly.react("secMap",[start,path],lay,CFG);
+}
+function drawSection(){
+  const ds=document.getElementById("secDataset").value;
+  const vk=document.getElementById("secVar").value;
+  const scale=document.getElementById("secScale").value;
+  const power=+document.getElementById("secPow").value;
+  let pts, lbl, xTicks=null, showDots;
+
+  if(ds==="ctd"){
+    lbl=ctdByKey[vk].label;
+    const nodes=ctdStationOrder();
+    const distOf={};
+    nodes.forEach(nd=>nd.members.forEach(m=>distOf[m]=nd.dist));   // raw station → track distance
+    const N=CTD.depth.length, stride=Math.max(1,Math.ceil(N/1500));  // cap for speed
+    pts=[];
+    for(let r=0;r<N;r+=stride){
+      const v=CTD[vk][r], d=CTD.depth[r], st=CTDSTATIONS[CTD.st[r]];
+      if(!isNum(v)||!isNum(d)||!(st in distOf)||!yrCTD(r)) continue;
+      pts.push({x:distOf[st], y:d, v, st});
+    }
+    showDots=false;   // thousands of casts — the smooth field reads better without dots
+    // station ticks, deduped so the co-located S59 cluster shows once
+    const vals=[],text=[]; let last=-Infinity;
+    nodes.forEach(nd=>{ if(nd.dist-last>0.8){vals.push(nd.dist); text.push(nd.st); last=nd.dist;} });
+    xTicks={vals,text};
+    drawSectionMap(nodes);
+  } else if(ds==="live"){
+    lbl=(liveScByKey[vk]||{label:vk}).label;
+    const dist=liveTrackDist(), n=LIVE.t.length;
+    pts=[];
+    for(let i=0;i<n;i++){ const v=LIVE[vk][i], dep=LIVE.depth[i];
+      if(!isNum(v)||!isNum(dep)||!yrLive(i)) continue; pts.push({x:dist[i], y:dep, v, st:"live"}); }
+    showDots=false;
+    trackMapColored("secMap", vk);
+  } else {
+    lbl=byKey[vk].label;
+    const sts=stationOrder();
+    const distOf=Object.fromEntries(sts.map(s=>[s.st,s.dist]));
+    pts=DATA.filter(d=>isNum(d[vk])&&isNum(d.depth)&&d.station in distOf&&yrBottle(d))
+      .map(d=>({x:distOf[d.station], y:d.depth, v:d[vk], st:d.station}));
+    xTicks={vals:sts.map(s=>s.dist), text:sts.map(s=>s.st)};
+    showDots=true;
+    drawSectionMap(sts);
+  }
+  if(pts.length<3){
+    Plotly.react("secPlot",[],Object.assign(baseLayout(),{annotations:[{
+      text:"Not enough data to build a section for this variable.",
+      showarrow:false,font:{color:"#9fb1cc"}}]}),CFG);
+    return;
+  }
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const xmin=Math.min(...xs), xmax=Math.max(...xs);
+  const ymin=Math.min(...ys), ymax=Math.max(...ys);
+  const xr=(xmax-xmin)||1, yr=(ymax-ymin)||1;
+  const NX=120, NY=60;
+  const gx=Array.from({length:NX},(_,i)=>xmin+(xmax-xmin)*i/(NX-1));
+  const gy=Array.from({length:NY},(_,j)=>ymin+(ymax-ymin)*j/(NY-1));
+  // normalized coords for isotropic weighting
+  const np=pts.map(p=>({nx:(p.x-xmin)/xr, ny:(p.y-ymin)/yr, v:p.v}));
+  const Z=[];
+  for(let j=0;j<NY;j++){
+    const row=[];
+    const ny=(gy[j]-ymin)/yr;
+    for(let i=0;i<NX;i++){
+      const nx=(gx[i]-xmin)/xr;
+      let num=0,den=0,exact=null;
+      for(const p of np){
+        const dx=nx-p.nx, dy=ny-p.ny, d2=dx*dx+dy*dy;
+        if(d2<1e-9){exact=p.v;break;}
+        const w=1/Math.pow(d2,power/2);
+        num+=w*p.v; den+=w;
+      }
+      row.push(exact!==null?exact:num/den);
+    }
+    Z.push(row);
+  }
+  const heat={type:"contour", x:gx, y:gy, z:Z, colorscale:scale,
+    contours:{coloring:"heatmap"}, line:{width:0},
+    colorbar:{title:{text:lbl,side:"right"},thickness:14,len:.9}};
+  const dots={type:"scatter", mode:"markers", x:xs, y:ys,
+    marker:{size:7,color:"#0e1726",line:{width:1.4,color:"#e8eef7"}},
+    hovertext:pts.map(p=>`<b>${p.st}</b><br>${fmt(p.x)} km, ${fmt(p.y)} m<br>${lbl}: ${fmt(p.v)}`),
+    hoverinfo:"text", showlegend:false};
+  const lay=baseLayout();
+  const secTitle = ds==="live" ? "Distance along sonde track (km)"
+                               : "Distance along cruise track:  SW → N → SE  (km)";
+  lay.xaxis={title:secTitle, gridcolor:"#24364f"};
+  if(xTicks){lay.xaxis.tickmode="array"; lay.xaxis.tickvals=xTicks.vals;
+    lay.xaxis.ticktext=xTicks.text; lay.xaxis.tickangle=xTicks.vals.length>10?-45:0;}
+  lay.yaxis={title:"Depth (m)", autorange:"reversed", gridcolor:"#24364f"};
+  Plotly.react("secPlot", showDots?[heat,dots]:[heat], lay, CFG);
+}
+
+// ---- TABLE ------------------------------------------------------------------
+let tblDataset="bottle", sortKey="date", sortDir=1;
+const TBL_CAP = 2500;   // max rows rendered to the DOM (download has them all)
+// CTD table columns: meta + position + every sensor variable
+const CTD_TBLCOLS = [
+  {key:"station",short:"Station",label:"Station",txt:true},
+  {key:"date",short:"Date",label:"Date",txt:true},
+  {key:"lat",short:"Lat",label:"Latitude (°N)"},
+  {key:"lon",short:"Lon",label:"Longitude (°W)"},
+  {key:"depth",short:"Depth",label:"Depth (m)"},
+  ...CTDVARS.map(v=>({key:v.key, short:v.short, label:v.label})),
+];
+const ctdCell = (r,k) => k==="station" ? CTDSTATIONS[CTD.st[r]] : CTD[k][r];
+
+function drawTable(){
+  const q=document.getElementById("tblSearch").value.trim().toLowerCase();
+  const t=document.getElementById("dataTable");
+  const info=document.getElementById("tblInfo");
+
+  if(tblDataset==="ctd"){
+    const cols=CTD_TBLCOLS, txt={station:1,date:1};
+    const N=CTD.depth.length;
+    let idx=[];
+    for(let r=0;r<N;r++){
+      if(!yrCTD(r)) continue;
+      if(!q || CTDSTATIONS[CTD.st[r]].toLowerCase().includes(q) || CTD.date[r].toLowerCase().includes(q))
+        idx.push(r);
+    }
+    idx.sort((a,b)=>{
+      let av=ctdCell(a,sortKey), bv=ctdCell(b,sortKey);
+      if(av==null) return 1; if(bv==null) return -1;
+      if(typeof av==="string") return av.localeCompare(bv)*sortDir;
+      return (av-bv)*sortDir;
+    });
+    const shown=idx.slice(0,TBL_CAP);
+    info.textContent = idx.length>TBL_CAP
+      ? `Showing first ${TBL_CAP.toLocaleString()} of ${idx.length.toLocaleString()} CTD readings (sorted) — download for the full set.`
+      : `${idx.length.toLocaleString()} CTD readings.`;
+    let html="<thead><tr>"+cols.map(c=>
+      `<th class="${c.txt?'txt':''}" data-k="${c.key}">${c.short}${sortKey===c.key?(sortDir>0?' ▲':' ▼'):''}</th>`).join("")+"</tr></thead><tbody>";
+    for(const r of shown){
+      html+="<tr>"+cols.map(c=>{
+        const v=ctdCell(r,c.key);
+        if(c.txt) return `<td class="txt">${v}</td>`;
+        return isNum(v)?`<td>${fmt(v)}</td>`:`<td class="miss">—</td>`;
+      }).join("")+"</tr>";
+    }
+    t.innerHTML=html+"</tbody>";
+    wireSort(t);
+    return;
+  }
+
+  if(tblDataset==="live"){
+    const cols=LIVE_TBLCOLS, N=LIVE.t.length;
+    let idx=[];
+    for(let r=0;r<N;r++){ if(!yrLive(r)) continue; if(!q || liveCell(r,"time").toLowerCase().includes(q)) idx.push(r); }
+    idx.sort((a,b)=>{ let av=liveSortVal(a,sortKey), bv=liveSortVal(b,sortKey);
+      if(av==null) return 1; if(bv==null) return -1;
+      if(typeof av==="string") return av.localeCompare(bv)*sortDir; return (av-bv)*sortDir; });
+    const shown=idx.slice(0,TBL_CAP);
+    info.textContent = !idx.length ? "No live data yet — open the Live tab and press Start."
+      : (idx.length>TBL_CAP ? `Showing first ${TBL_CAP.toLocaleString()} of ${idx.length.toLocaleString()} live readings.`
+                            : `${idx.length.toLocaleString()} live readings.`);
+    let html="<thead><tr>"+cols.map(c=>
+      `<th class="${c.txt?'txt':''}" data-k="${c.key}">${c.short}${sortKey===c.key?(sortDir>0?' ▲':' ▼'):''}</th>`).join("")+"</tr></thead><tbody>";
+    for(const r of shown){ html+="<tr>"+cols.map(c=>{ const v=liveCell(r,c.key);
+      if(c.txt) return `<td class="txt">${v}</td>`;
+      return isNum(v)?`<td>${fmt(v)}</td>`:`<td class="miss">—</td>`; }).join("")+"</tr>"; }
+    t.innerHTML=html+"</tbody>"; wireSort(t); return;
+  }
+
+  let rows=DATA.filter(d=>yrBottle(d) && (!q || d.station.toLowerCase().includes(q) || d.date.toLowerCase().includes(q)));
+  rows=rows.slice().sort((a,b)=>{
+    let av=a[sortKey], bv=b[sortKey];
+    if(av==null) return 1; if(bv==null) return -1;
+    if(typeof av==="string") return av.localeCompare(bv)*sortDir;
+    return (av-bv)*sortDir;
+  });
+  info.textContent=`${rows.length} bottle samples.`;
+  const cols=VARS;
+  let html="<thead><tr>"+cols.map(c=>
+    `<th class="${META.includes(c.key)?'txt':''}" data-k="${c.key}">${c.short}${sortKey===c.key?(sortDir>0?' ▲':' ▼'):''}</th>`).join("")+"</tr></thead><tbody>";
+  for(const d of rows){
+    html+="<tr>"+cols.map(c=>{
+      const meta=META.includes(c.key);
+      const v=d[c.key];
+      if(meta) return `<td class="txt">${v}</td>`;
+      return isNum(v)?`<td>${fmt(v)}</td>`:`<td class="miss">—</td>`;
+    }).join("")+"</tr>";
+  }
+  t.innerHTML=html+"</tbody>";
+  wireSort(t);
+}
+function wireSort(t){
+  t.querySelectorAll("th").forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(k===sortKey) sortDir*=-1; else {sortKey=k; sortDir=1;}
+    drawTable();
+  });
+}
+function downloadCsv(){
+  if(tblDataset==="live"){ downloadLive(); return; }
+  let head, lines, name;
+  if(tblDataset==="ctd"){
+    const cols=CTD_TBLCOLS, N=CTD.depth.length;
+    head=cols.map(c=>c.label).join(",");
+    lines=[];
+    for(let r=0;r<N;r++) lines.push(cols.map(c=>{
+      const v=ctdCell(r,c.key);
+      if(c.txt) return `"${v}"`;
+      return isNum(v)?v:"";
+    }).join(","));
+    name="LakeWinnipeg2025_CTD.csv";
+  } else {
+    const cols=VARS;
+    head=cols.map(c=>c.label).join(",");
+    lines=DATA.map(d=>cols.map(c=>{
+      const v=d[c.key];
+      if(META.includes(c.key)) return `"${v}"`;
+      return isNum(v)?v:"";
+    }).join(","));
+    name="LakeWinnipeg2025_bottle.csv";
+  }
+  const blob=new Blob(["﻿"+head+"\n"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  a.click();
+}
+
+// ---- LIVE (YSI sonde: real-time + logged) ----------------------------------
+// Columnar log, mirroring the CTD store so it slots into the same panels.
+const LIVE_VARS = [
+  {key:"temp",   short:"Temp",   label:"Temperature (°C)"},
+  {key:"spcond", short:"SpCond", label:"Sp. conductivity (µS/cm)"},
+  {key:"sal",    short:"Sal",    label:"Salinity (PSU)"},
+  {key:"odo_sat",short:"DO%",    label:"DO saturation (%)"},
+  {key:"odo",    short:"DO",     label:"Dissolved O₂ (mg/L)"},
+  {key:"ph",     short:"pH",     label:"pH"},
+  {key:"orp",    short:"ORP",    label:"ORP (mV)"},
+  {key:"turb",   short:"Turb",   label:"Turbidity (FNU)"},
+  {key:"chl",    short:"Chl",    label:"Chlorophyll (µg/L)"},
+  {key:"fdom",   short:"fDOM",   label:"fDOM (QSU)"},
+];
+const LIVE_SCVARS = [{key:"depth",short:"Depth",label:"Depth (m)"}, ...LIVE_VARS];
+const liveScByKey = Object.fromEntries(LIVE_SCVARS.map(v=>[v.key,v]));
+const LIVE = {t:[],lat:[],lon:[],depth:[]};
+LIVE_VARS.forEach(v=>LIVE[v.key]=[]);
+const LIVE_TBLCOLS = [
+  {key:"time",short:"Time",label:"Time",txt:true},
+  {key:"lat",short:"Lat",label:"Latitude (°N)"},
+  {key:"lon",short:"Lon",label:"Longitude (°W)"},
+  {key:"depth",short:"Depth",label:"Depth (m)"},
+  ...LIVE_VARS.map(v=>({key:v.key,short:v.short,label:v.label})),
+];
+const liveCell=(r,k)=> k==="time" ? new Date(LIVE.t[r]).toLocaleTimeString()
+  : (k==="lat"?LIVE.lat[r]:k==="lon"?LIVE.lon[r]:k==="depth"?LIVE.depth[r]:LIVE[k][r]);
+const liveSortVal=(r,k)=> k==="time"?LIVE.t[r]:liveCell(r,k);
+const num=x=> (typeof x==="number"&&!isNaN(x))?x:null;
+
+let liveTimer=null, liveTickN=0, simI=0, bleDevice=null, bleChar=null;
+const setLiveStatus=h=>{document.getElementById("liveStatus").innerHTML=h;};
+
+function pushSample(s){
+  LIVE.t.push(s.t??Date.now());
+  LIVE.lat.push(num(s.lat)); LIVE.lon.push(num(s.lon)); LIVE.depth.push(num(s.depth));
+  LIVE_VARS.forEach(v=>LIVE[v.key].push(num(s[v.key])));
+  if(LIVE.t.length>6000){ const cut=LIVE.t.length-5000; for(const k in LIVE) LIVE[k].splice(0,cut); }
+  liveRefreshUI();
+}
+
+// ---- simulated stream (a drifting, profiling cast on the south basin) -------
+function liveTick(){
+  const i=simI++;
+  const depth=Math.max(0, 4-4*Math.cos(i*0.10));                 // 0→8 m profiling
+  const lat=50.405 + i*0.0007 + (Math.random()-0.5)*0.0002;     // drifting north
+  const lon=-96.83 + 0.015*Math.sin(i*0.025) + (Math.random()-0.5)*0.0002;
+  const r=()=>(Math.random()-0.5);
+  pushSample({ t:Date.now(), lat, lon, depth,
+    temp:20.4-0.55*depth+0.15*r(), spcond:420+24*depth+6*r(), sal:0.20+0.012*depth+0.004*r(),
+    odo_sat:112-5*depth+2*r(), odo:10.6-0.45*depth+0.2*r(), ph:8.52-0.05*depth+0.02*r(),
+    orp:205-6*depth+4*r(), turb:5+5*depth+3*Math.abs(r()),
+    chl:Math.max(0.5,72*Math.exp(-depth/2.3)+3*r()), fdom:34+2*depth+2*r() });
+}
+
+// ---- real YSI sonde over Web Bluetooth (configure for your instrument) ------
+// Reverse-engineered from the KorLink/EXO firmware (YSI 603782REF package):
+//   • BLE advertising name = "YSI:KorLink"  → used as the device-picker filter below.
+//   • The GATT service/characteristic UUIDs live in KorLink's separate BLE radio
+//     module, NOT in the app firmware — so they can't be pulled from the .hex files.
+//     Read them once from the live device with a BLE scanner (e.g. nRF Connect):
+//     note the custom service UUID and the NOTIFY characteristic that streams data,
+//     then drop them into `service`/`characteristic` here.
+//   • The stream carries EXO parameters + GPS. Parameter/unit vocabulary seen in the
+//     handheld firmware (for parseYsiPacket): Temp °C, SPC/C µS/cm, SAL PSU,
+//     ODO %sat & mg/L, pH, ORP mV, Turbidity FNU, Chl/PC/PE RFU, fDOM QSU/RFU,
+//     Depth m, ISEs (NH4/NO3/Cl mg/L), Wiper V, Battery, GPS lat/lon/alt/date/time.
+const YSI_BLE = { namePrefix:"YSI:KorLink", service:"", characteristic:"" }; // fill service+characteristic from an nRF Connect scan
+function parseYsiPacket(/* DataView */){ return null; } // TODO: decode the notify payload → {t,lat,lon,depth,temp,...}
+async function connectBle(){
+  if(!("bluetooth" in navigator)){ setLiveStatus("Web Bluetooth isn’t available — use Chrome or Edge. Demo mode still works."); return; }
+  if(!window.isSecureContext){ setLiveStatus("Bluetooth needs <code>https://</code> or <code>localhost</code> (not a file:// page). Demo mode still works."); return; }
+  if(!YSI_BLE.service){ setLiveStatus("Bluetooth selected, but the sonde’s BLE profile hasn’t been configured yet (set <code>YSI_BLE</code> in the code). Use Demo mode meanwhile."); return; }
+  try{
+    setLiveStatus("Requesting Bluetooth device…");
+    bleDevice=await navigator.bluetooth.requestDevice({
+      filters:[ YSI_BLE.namePrefix?{namePrefix:YSI_BLE.namePrefix}:{services:[YSI_BLE.service]} ],
+      optionalServices:[YSI_BLE.service] });
+    const gatt=await bleDevice.gatt.connect();
+    const svc=await gatt.getPrimaryService(YSI_BLE.service);
+    bleChar=await svc.getCharacteristic(YSI_BLE.characteristic);
+    await bleChar.startNotifications();
+    bleChar.addEventListener("characteristicvaluechanged", e=>{ const s=parseYsiPacket(e.target.value); if(s) pushSample(s); });
+    setLiveStatus('<span class="live-dot"></span> Connected to '+(bleDevice.name||"sonde")+" — streaming…");
+  }catch(e){ setLiveStatus("Bluetooth error: "+e.message+" — Demo mode still works."); }
+}
+
+function liveStart(){
+  const src=document.getElementById("liveSource").value;
+  if(src==="ble"){ connectBle(); return; }
+  if(liveTimer) return;
+  setLiveStatus('<span class="live-dot"></span> Streaming simulated data…');
+  liveTimer=setInterval(liveTick, 1000);
+}
+function liveStop(){
+  if(liveTimer){ clearInterval(liveTimer); liveTimer=null; }
+  try{ if(bleChar) bleChar.stopNotifications(); }catch(e){}
+  try{ if(bleDevice&&bleDevice.gatt.connected) bleDevice.gatt.disconnect(); }catch(e){}
+  setLiveStatus("⏸ Stopped — "+LIVE.t.length+" samples logged.");
+}
+function liveClear(){
+  for(const k in LIVE) LIVE[k].length=0; simI=0;
+  liveCardsDraw(); liveChartDraw(); liveMapColored();
+  refreshLiveDependents();
+  setLiveStatus("Log cleared.");
+}
+
+// ---- import a logged YSI KorDSS / KorEXO CSV export -------------------------
+function liveLoadFile(file){
+  const reader=new FileReader();
+  reader.onerror=()=>setLiveStatus("Couldn’t read the file.");
+  reader.onload=()=>{ try{ parseKorDSS(reader.result, file.name); }
+    catch(e){ setLiveStatus("Import error: "+e.message); } };
+  reader.readAsText(file, "ISO-8859-1");   // KorDSS exports are Latin-1
+}
+function parseKorDSS(text, fname){
+  if(liveTimer){ clearInterval(liveTimer); liveTimer=null; }
+  const lines=text.split(/\r?\n/).filter(l=>l.trim().length);
+  if(lines.length<2) throw new Error("file looks empty");
+  const hdr=lines[0].split(",").map(h=>h.trim().toLowerCase());
+  const has=(...subs)=>hdr.findIndex(h=>subs.every(s=>h.includes(s)));
+  const map={                                    // LIVE key -> column index (−1 if absent)
+    temp:has("temp"), spcond:has("sp cond"), sal:has("sal"),
+    odo_sat:has("do (","% sat"), odo:has("do (","mg/l"),
+    ph:has("ph ( ph"), orp:has("orp"), turb:has("turb"),
+    fdom:has("fdom","qsu")>=0?has("fdom","qsu"):has("fdom"),
+    chl:has("chl"), depth:has("depth"),
+  };
+  const di=has("date"), ti=has("time"), lat=has("lat"), lon=has("lon");
+  for(const k in LIVE) LIVE[k].length=0;
+  let bad=0;
+  for(let r=1;r<lines.length;r++){
+    const c=lines[r].split(",");
+    const t=Date.parse((c[di]||"")+" "+(c[ti]||""));
+    if(isNaN(t)){ bad++; continue; }
+    LIVE.t.push(t);
+    LIVE.lat.push(lat>=0?(parseFloat(c[lat])||null):null);
+    LIVE.lon.push(lon>=0?(parseFloat(c[lon])||null):null);
+    LIVE.depth.push(map.depth>=0?numOr(c[map.depth]):null);
+    LIVE_VARS.forEach(v=>LIVE[v.key].push(map[v.key]>=0?numOr(c[map[v.key]]):null));
+  }
+  liveTickN=0;
+  computeYears(); renderYearBar();              // imported data may add a new year
+  liveCardsDraw(); liveChartDraw(); liveMapColored(); refreshLiveDependents();
+  const mapped=Object.keys(map).filter(k=>map[k]>=0);
+  if(gpxTrack){ applyGps(); return; }            // re-match an already-loaded GPS track
+  const noGps = lat<0 || !LIVE.lat.some(isNum);
+  setLiveStatus(`✓ Loaded <b>${LIVE.t.length.toLocaleString()}</b> rows from <code>${fname}</code>`+
+    (bad?` (${bad} skipped)`:"")+`. Variables: ${mapped.join(", ")}.`+
+    (noGps?` <b style="color:var(--warn)">No GPS in this file</b> — the track map and Section need positions (see below).`:""));
+}
+const numOr=x=>{ const v=parseFloat(x); return isNaN(v)?null:v; };
+
+// ---- merge a GPS track (GPX) onto the logged rows by timestamp -------------
+let gpxTrack=null;                 // [{t,lat,lon}] sorted by time
+const GPS_TOL=120000;              // max gap to accept a match (ms)
+function liveLoadGpx(file){
+  const reader=new FileReader();
+  reader.onerror=()=>setLiveStatus("Couldn’t read the GPX file.");
+  reader.onload=()=>{ try{ parseGpx(reader.result, file.name); }
+    catch(e){ setLiveStatus("GPX error: "+e.message); } };
+  reader.readAsText(file);
+}
+function parseGpx(text, fname){
+  const doc=new DOMParser().parseFromString(text, "application/xml");
+  if(doc.getElementsByTagName("parsererror").length) throw new Error("not valid XML");
+  let pts;
+  const coords=doc.getElementsByTagName("gx:coord");
+  if(coords.length){                                   // KML gx:Track (when + gx:coord pairs)
+    const whens=doc.getElementsByTagName("when");
+    const n=Math.min(coords.length, whens.length); pts=[];
+    for(let i=0;i<n;i++){
+      const parts=coords[i].textContent.trim().split(/\s+/);
+      pts.push({t:Date.parse(whens[i].textContent.trim()), lon:parseFloat(parts[0]), lat:parseFloat(parts[1])});
+    }
+  } else {                                             // GPX trkpt / rtept
+    pts=[...doc.getElementsByTagName("trkpt"), ...doc.getElementsByTagName("rtept")].map(p=>{
+      const tn=p.getElementsByTagName("time")[0];
+      return {lat:parseFloat(p.getAttribute("lat")), lon:parseFloat(p.getAttribute("lon")),
+              t: tn?Date.parse(tn.textContent):NaN};
+    });
+  }
+  pts=pts.filter(p=>isFinite(p.t)&&isNum(p.lat)&&isNum(p.lon));
+  if(pts.length<2) throw new Error("no timestamped track points found");
+  // additive: merge into any already-loaded track so multiple partial GPX files combine
+  const merged=(gpxTrack?gpxTrack.pts:[]).concat(pts).sort((a,b)=>a.t-b.t);
+  const names=(gpxTrack?gpxTrack.names:[]).concat([fname]);
+  gpxTrack={pts:merged, names, fname:names.length>1?`${names.length} GPX files`:fname};
+  applyGps();
+}
+function applyGps(){
+  if(!gpxTrack){ setLiveStatus("Load a GPX track first."); return; }
+  if(!LIVE.t.length){ setLiveStatus("Load a sonde CSV first, then the GPX."); return; }
+  const g=gpxTrack.pts;
+  const off=(parseFloat(document.getElementById("gpsOffset").value)||0)*60000;
+  let matched=0;
+  for(let i=0;i<LIVE.t.length;i++){
+    const t=LIVE.t[i]+off;
+    let lo=0, hi=g.length-1, lat=null, lon=null;
+    if(t<=g[0].t){ if(g[0].t-t<=GPS_TOL){lat=g[0].lat;lon=g[0].lon;} }
+    else if(t>=g[hi].t){ if(t-g[hi].t<=GPS_TOL){lat=g[hi].lat;lon=g[hi].lon;} }
+    else { while(hi-lo>1){ const m=(lo+hi)>>1; if(g[m].t<=t) lo=m; else hi=m; }
+      const a=g[lo], b=g[hi];
+      if(t-a.t<=GPS_TOL || b.t-t<=GPS_TOL){
+        const f=(t-a.t)/((b.t-a.t)||1); lat=a.lat+(b.lat-a.lat)*f; lon=a.lon+(b.lon-a.lon)*f;
+      }
+    }
+    LIVE.lat[i]=lat; LIVE.lon[i]=lon; if(lat!==null) matched++;
+  }
+  liveCardsDraw(); liveMapColored(); refreshLiveDependents();
+  const win=`${new Date(g[0].t).toLocaleTimeString()}–${new Date(g[g.length-1].t).toLocaleTimeString()}`;
+  const miss=LIVE.t.length-matched;
+  setLiveStatus(`📍 Matched <b>${matched.toLocaleString()}</b> of ${LIVE.t.length.toLocaleString()} rows to `+
+    `<code>${gpxTrack.fname}</code> (track ${win})`+
+    (miss?`. <b style="color:var(--warn)">${miss.toLocaleString()} rows outside track coverage</b> — load the rest of the GPX, or nudge the offset.`:`.`));
+}
+
+// load the build-time pre-loaded real sonde data into the live store
+function loadPrelive(){
+  if(!PRELIVE || !PRELIVE.t || !PRELIVE.t.length) return;
+  ["t","lat","lon","depth",...LIVE_VARS.map(v=>v.key)].forEach(k=>{ LIVE[k]=(PRELIVE[k]||[]).slice(); });
+  liveTickN=0; liveCardsDraw(); liveChartDraw(); liveMapColored(); refreshLiveDependents();
+  const withGps=LIVE.lat.filter(isNum).length;
+  const days=new Set(LIVE.t.map(t=>new Date(t).toLocaleDateString())).size;
+  setLiveStatus(`Pre-loaded <b>${LIVE.t.length.toLocaleString()}</b> real YSI sonde rows`+
+    (days>1?` across ${days} days`:"")+
+    (withGps?`, <b>${withGps.toLocaleString()}</b> geolocated.`:` (no GPS yet).`)+
+    ` Use <b>Load KorDSS CSV</b> / <b>Load GPS (GPX)</b> to add or replace.`);
+}
+
+// ---- live UI ---------------------------------------------------------------
+function liveCardsDraw(){
+  const n=LIVE.t.length, el=document.getElementById("liveCards");
+  if(!n){ el.innerHTML='<div class="stat"><div class="n">—</div><div class="l">no samples yet</div></div>'; return; }
+  const i=n-1;
+  const pos=(isNum(LIVE.lat[i])&&isNum(LIVE.lon[i]))
+    ? fmt(LIVE.lat[i])+"°N "+fmt(Math.abs(LIVE.lon[i]))+"°W" : "no GPS";
+  const cells=[["#"+n,"samples"], [fmt(LIVE.depth[i])+" m","depth"], [pos,"position"]];
+  LIVE_VARS.forEach(v=>cells.push([fmt(LIVE[v.key][i]), v.label]));
+  el.innerHTML=cells.map(c=>`<div class="stat"><div class="n">${c[0]}</div><div class="l">${c[1]}</div></div>`).join("");
+}
+function liveChartDraw(){
+  const vk=(document.getElementById("liveVar")||{}).value || "temp";
+  const meta=liveScByKey[vk]||{label:vk};
+  const n=LIVE.t.length, start=Math.max(0,n-300), xs=[],ys=[];
+  for(let i=start;i<n;i++){ xs.push((LIVE.t[i]-LIVE.t[start])/1000); ys.push(LIVE[vk][i]); }
+  const lay=baseLayout(); lay.margin={l:62,r:16,t:30,b:46};
+  lay.xaxis={title:"Seconds (rolling)", gridcolor:"#24364f"};
+  lay.yaxis={title:meta.label, gridcolor:"#24364f"};
+  Plotly.react("liveChart",[{type:"scatter",mode:"lines",x:xs,y:ys,line:{color:"#7bdcb5",width:2}}],lay,CFG);
+}
+function renderTrackMap(divId, lats, lons){
+  const tx=lons.map(lon2x), ty=lats.map(lat2y), n=tx.length;
+  const lay=baseLayout(); lay.margin={l:8,r:8,t:26,b:8};
+  lay.images=BASEMAP.tiles.map(t=>({source:t.uri,xref:"x",yref:"y",x:t.x0,y:t.y0,
+    sizex:t.x1-t.x0,sizey:t.y1-t.y0,xanchor:"left",yanchor:"top",sizing:"stretch",layer:"below"}));
+  lay.xaxis={range:BASEMAP.xrange.slice(), visible:false, constrain:"domain"};
+  lay.yaxis={range:[BASEMAP.yrange[0],BASEMAP.yrange[1]], scaleanchor:"x", scaleratio:1, visible:false, constrain:"domain"};
+  lay.showlegend=false;
+  lay.title={text:"Sonde track", font:{size:12,color:"#9fb1cc"}, x:0.5, xanchor:"center", y:0.99, yanchor:"top"};
+  const track={type:"scatter",mode:"lines",x:tx,y:ty,line:{color:"#37c7e0",width:2},hoverinfo:"skip"};
+  const cur={type:"scatter",mode:"markers",x:n?[tx[n-1]]:[],y:n?[ty[n-1]]:[],
+    marker:{size:12,color:"#ff5d5d",line:{width:2,color:"#fff"}},hoverinfo:"skip"};
+  Plotly.react(divId,[track,cur],lay,CFG);
+}
+// track map coloured by a chosen YSI variable (shows spatial gradients) — used by
+// the Live tab (liveMap) and the Section inset (secMap)
+function trackMapColored(divId, vk){
+  const meta=liveScByKey[vk]||{label:vk,short:vk};
+  const lo=[],la=[],vv=[],linex=[],liney=[]; const n=LIVE.t.length; let lastT=null;
+  for(let i=0;i<n;i++){ if(isNum(LIVE.lat[i])&&isNum(LIVE.lon[i])){
+    const X=lon2x(LIVE.lon[i]), Y=lat2y(LIVE.lat[i]);
+    if(lastT!==null && LIVE.t[i]-lastT>1800000){ linex.push(null); liney.push(null); }   // break >30 min gap
+    lo.push(X); la.push(Y); vv.push(isNum(LIVE[vk][i])?LIVE[vk][i]:null); linex.push(X); liney.push(Y); lastT=LIVE.t[i];
+  }}
+  const lay=baseLayout(); lay.margin={l:8,r:8,t:26,b:8};
+  lay.images=BASEMAP.tiles.map(t=>({source:t.uri,xref:"x",yref:"y",x:t.x0,y:t.y0,
+    sizex:t.x1-t.x0,sizey:t.y1-t.y0,xanchor:"left",yanchor:"top",sizing:"stretch",layer:"below"}));
+  lay.xaxis={range:BASEMAP.xrange.slice(), visible:false, constrain:"domain"};
+  lay.yaxis={range:[BASEMAP.yrange[0],BASEMAP.yrange[1]], scaleanchor:"x", scaleratio:1, visible:false, constrain:"domain"};
+  lay.showlegend=false;
+  lay.title={text:vv.some(isNum)?("Track · "+meta.label):"Sonde track", font:{size:12,color:"#9fb1cc"}, x:0.5, xanchor:"center", y:0.99, yanchor:"top"};
+  const traces=[];
+  if(vv.some(isNum)){
+    traces.push({type:"scattergl", mode:"lines", x:linex, y:liney, line:{color:"rgba(55,199,224,.3)",width:1}, hoverinfo:"skip"});
+    traces.push({type:"scattergl", mode:"markers", x:lo, y:la,
+      marker:{size:6, color:vv, colorscale:"Portland", showscale:true,
+        colorbar:{title:{text:meta.short||meta.label,side:"right"},thickness:12,len:.85,bgcolor:"rgba(14,23,38,.5)"}},
+      hoverinfo:"skip"});
+  } else {
+    traces.push({type:"scatter", mode:"lines", x:lo, y:la, line:{color:"#37c7e0",width:2}, hoverinfo:"skip"});
+  }
+  if(lo.length) traces.push({type:"scatter", mode:"markers", x:[lo[lo.length-1]], y:[la[la.length-1]],
+    marker:{size:12,color:"#ff5d5d",line:{width:2,color:"#fff"}}, hoverinfo:"skip"});
+  Plotly.react(divId, traces, lay, CFG);
+}
+function liveMapColored(){ trackMapColored("liveMap", (document.getElementById("liveVar")||{}).value || "temp"); }
+function liveRefreshUI(){
+  liveCardsDraw(); liveChartDraw();
+  if(liveTickN++ % 2 === 0) liveMapColored();
+  refreshLiveDependents();
+}
+function refreshLiveDependents(){
+  const active=document.querySelector(".view.active"); if(!active) return;
+  if(active.id==="scatter" && document.getElementById("sDataset").value==="live") drawScatter();
+  else if(active.id==="section" && document.getElementById("secDataset").value==="live") drawSection();
+  else if(active.id==="table" && tblDataset==="live") drawTable();
+  else if(active.id==="map" && (document.getElementById("mapTrack")||{}).checked) drawMap();
+}
+function liveTrackDist(){
+  const n=LIVE.t.length, d=new Array(n).fill(0);
+  for(let i=1;i<n;i++){
+    const gap = LIVE.t[i]-LIVE.t[i-1] > 1800000;   // don't accumulate across long (overnight) gaps
+    d[i]=d[i-1]+((!gap && isNum(LIVE.lat[i])&&isNum(LIVE.lat[i-1]))?hav(LIVE.lat[i-1],LIVE.lon[i-1],LIVE.lat[i],LIVE.lon[i]):0);
+  }
+  return d;
+}
+// merged sonde+GPS export in Ocean Data View spreadsheet format
+const ODV_HDR={temp:"Temperature [degC]", spcond:"SpCond [uS/cm]", sal:"Salinity [PSU]",
+  odo_sat:"ODO sat [%]", odo:"ODO [mg/L]", ph:"pH", orp:"ORP [mV]",
+  turb:"Turbidity [FNU]", chl:"Chlorophyll [ug/L]", fdom:"fDOM [QSU]"};
+function downloadLive(){
+  const N=LIVE.t.length;
+  const head=["Cruise","Station","Type","yyyy-mm-ddThh:mm:ss",
+    "Longitude [degrees_east]","Latitude [degrees_north]","Depth [m]",
+    ...LIVE_VARS.map(v=>ODV_HDR[v.key]||v.label)];
+  const lines=[head.join(",")];
+  const cell=x=>isNum(x)?x:"";
+  for(let r=0;r<N;r++){
+    lines.push(["LWFC2026","YSI-underway","C",
+      new Date(LIVE.t[r]).toISOString().replace(/\.\d+Z$/,""),
+      cell(LIVE.lon[r]), cell(LIVE.lat[r]), cell(LIVE.depth[r]),
+      ...LIVE_VARS.map(v=>cell(LIVE[v.key][r]))].join(","));
+  }
+  const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="LWFC2026_YSI_sonde_GPS_ODV.csv"; a.click();
+}
+function emptyPlot(id,msg){
+  Plotly.react(id,[],Object.assign(baseLayout(),{annotations:[{text:msg,showarrow:false,font:{color:"#9fb1cc"}}]}),CFG);
+}
+
+// ---- TALK TO THE LAKE (OpenRouter chat) ------------------------------------
+const OR_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";  // edit here to swap models
+const OR_MAX_TOKENS = 4000;   // max length of each reply (raise/lower as needed)
+const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
+const CHAT_ENABLED = /*__CHAT__*/;      // build flag: false hides the chat tab (public builds)
+const DEFAULT_OR_KEY = /*__ORKEY__*/;   // optional bundled class key (from keyfile at build)
+const getKey = () => localStorage.getItem("or_key") || DEFAULT_OR_KEY;
+let chatHistory = [];
+
+function lakeContext(){
+  // full bottle dataset as CSV (small, 16 rows)
+  const head = VARS.map(v=>v.label).join(",");
+  const brows = DATA.map(d=>VARS.map(v=>{
+    const x=d[v.key]; if(META.includes(v.key)) return x; return isNum(x)?x:"";
+  }).join(","));
+  const bottleCsv = [head, ...brows].join("\n");
+  // per-station CTD summary (averages of the high-rate casts)
+  const agg={}, N=CTD.depth.length;
+  for(let r=0;r<N;r++){
+    const st=CTDSTATIONS[CTD.st[r]];
+    const a=agg[st]=agg[st]||{n:0,dmax:0};
+    a.n++; a.dmax=Math.max(a.dmax, CTD.depth[r]||0);
+    for(const k of ["temp","sal","do_conc","do_sat","chla","cdom","turb"]){
+      if(isNum(CTD[k][r])){ a[k]=(a[k]||0)+CTD[k][r]; a[k+"n"]=(a[k+"n"]||0)+1; }
+    }
+  }
+  const m=(a,k)=>a[k+"n"]?(a[k]/a[k+"n"]).toFixed(2):"NA";
+  const ctdLines=Object.keys(agg).map(st=>{const a=agg[st];
+    return `${st}: n=${a.n}, maxDepth=${a.dmax.toFixed(1)}m, T=${m(a,"temp")}C, Sal=${m(a,"sal")}PSU, `+
+      `DO=${m(a,"do_conc")}umol/L (${m(a,"do_sat")}%), Chl=${m(a,"chla")}ug/L, CDOM=${m(a,"cdom")}ppb, Turb=${m(a,"turb")}NTU`;});
+
+  return `You are "Talk to the Lake", a friendly, rigorous limnology & oceanography teaching assistant for a university field course aboard the MV NAMAO on Lake Winnipeg (south basin, Manitoba, Canada), June 2025. Students collected the data below and are learning Ocean Data View and data interpretation.
+
+Use this dataset as your primary evidence, and connect it to real limnology of Lake Winnipeg — a large, shallow, wind-mixed, eutrophic lake with heavy nutrient and sediment loading from the Red River (entering near the south), recurring late-summer cyanobacteria blooms, strong CDOM/turbidity gradients, and a carbonate-buffered, hardwater chemistry. Explain mechanisms (e.g. why surface chlorophyll exceeds deep, nutrient drawdown, river-plume vs lake end-members in ion ratios, oxygen super/under-saturation), and relate stations to geography (S1/S2 = Red River mouth/nearshore; W9 = far north of the transect; S7 = southeast).
+
+Be concise and specific, and flag uncertainty — this is raw teaching data with some missing values and replicate measurements. If a question can't be answered from the data, say so and suggest which plot or measurement would help.
+
+OUTPUT THE DATA DIRECTLY: when a question is about specific measurements, quote the exact values straight from the dataset above (don't approximate), naming the station, depth, and units. When you report more than two numbers, format them as a Markdown table (pipe syntax with a header separator row) so they render cleanly.
+
+LINK EXTERNAL REFERENCES: when you draw on outside knowledge about Lake Winnipeg or limnological concepts, point students to real, reputable sources using Markdown links [title](https://...). Prefer well-established resources you are confident exist — e.g. the Lake Winnipeg Research Consortium (lwrc.org), IISD Experimental Lakes Area (iisd.org/ela), the Lake Winnipeg DataStream (lakewinnipegdatastream.ca), Manitoba/Environment and Climate Change Canada lake pages, or peer-reviewed papers cited by DOI (https://doi.org/...). Do NOT fabricate URLs; if you are unsure of an exact link, name the source and journal instead of inventing a link.
+
+STATION GEOGRAPHY: the cruise track is an inverted V (southwest → northern apex at W9 → southeast). Bottle stations: S1 (Red River mouth) → S2 → W12 → S59 → W10 → W9 → CS1 → S7.
+
+=== BOTTLE CHEMISTRY (discrete rosette samples — full dataset, CSV) ===
+${bottleCsv}
+
+=== CTD SENSOR CASTS (per-station averages of ~2 Hz profiles) ===
+${ctdLines.join("\n")}`;
+}
+
+// minimal, XSS-safe markdown: escape first, then inline styles, links & tables
+function renderMd(s){
+  const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const inline=t=>esc(t)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\b(https?:\/\/[^\s)]+)(?![^<]*>)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g,"$1<em>$2</em>")
+    .replace(/`([^`]+)`/g,"<code>$1</code>");
+  const lines=s.split("\n"); let html="", i=0;
+  const cells=r=>r.replace(/^\s*\|/,"").replace(/\|\s*$/,"").split("|").map(c=>c.trim());
+  while(i<lines.length){
+    const ln=lines[i];
+    if(ln.includes("|") && i+1<lines.length &&
+       /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(lines[i+1])){
+      const head=cells(ln); i+=2; let body="";
+      while(i<lines.length && lines[i].includes("|")){
+        body+="<tr>"+cells(lines[i]).map(c=>`<td>${inline(c)}</td>`).join("")+"</tr>"; i++;
+      }
+      html+=`<table class="chattbl"><thead><tr>${head.map(h=>`<th>${inline(h)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table>`;
+      continue;
+    }
+    html+=inline(ln)+(i<lines.length-1?"\n":""); i++;
+  }
+  return html;
+}
+function addMsg(role, text){
+  const log=document.getElementById("chatLog");
+  const div=document.createElement("div");
+  div.className="msg "+role;
+  if(role==="bot") div.innerHTML=renderMd(text); else div.textContent=text;
+  log.appendChild(div);
+  log.scrollTop=log.scrollHeight;
+  return div;
+}
+
+async function sendChat(){
+  const inp=document.getElementById("chatInput");
+  const q=inp.value.trim();
+  if(!q) return;
+  const key=getKey();
+  if(!key){ addMsg("err","The chat assistant isn’t available right now (it hasn’t been configured). Try the other tabs, or check back later."); return; }
+  inp.value="";
+  addMsg("user", q);
+  chatHistory.push({role:"user", content:q});
+  const think=addMsg("think", "Talking to the lake…  (the assistant can take up to a minute)");
+  const btn=document.getElementById("chatSend"); btn.disabled=true;
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(), 150000);   // 2.5 min safety timeout
+  try{
+    const res=await fetch(OR_URL, {method:"POST", signal:ctrl.signal,
+      headers:{"Authorization":"Bearer "+key, "Content-Type":"application/json",
+               "X-Title":"Lake Winnipeg Data Explorer"},
+      body:JSON.stringify({model:OR_MODEL, temperature:0.4, max_tokens:OR_MAX_TOKENS,
+        messages:[{role:"system", content:lakeContext()}, ...chatHistory]})});
+    if(!res.ok){ const t=await res.text(); throw new Error(`${res.status} ${res.statusText} — ${t.slice(0,400)}`); }
+    const data=await res.json();
+    const reply=data?.choices?.[0]?.message?.content?.trim() || "(the assistant returned an empty response — try rephrasing.)";
+    think.remove();
+    addMsg("bot", reply);
+    chatHistory.push({role:"assistant", content:reply});
+  }catch(e){
+    think.remove();
+    chatHistory.pop();   // drop the unanswered question so history stays consistent
+    if(e.name==="AbortError")
+      addMsg("err", "The assistant took too long to respond (it can get busy). Please try again in a moment.");
+    else
+      addMsg("err", "Couldn’t reach the assistant. Check your internet connection and try again.");
+  }finally{ clearTimeout(timer); btn.disabled=false; }
+}
+
+function initLake(){
+  document.getElementById("chatSend").onclick=sendChat;
+  document.getElementById("chatInput").addEventListener("keydown", e=>{
+    if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
+  });
+  addMsg("bot", "Hi! I'm connected to the Lake Winnipeg data your class collected. Ask me things like "+
+    "“Where is the surface chlorophyll bloom and why?”, “How does oxygen change with depth?”, or "+
+    "“What do the ion ratios say about Red River vs lake water?” — I'll answer from the data and the limnology.");
+}
+
+// ---- init -------------------------------------------------------------------
+const RENDER={map:drawMap, profiles:drawProfiles, ctd:drawCtd, scatter:drawScatter,
+              section:drawSection, table:drawTable, lake:()=>{},
+              live:()=>{ liveCardsDraw(); liveChartDraw(); liveMapColored(); }};
+
+function init(){
+  // map
+  fillVarSelect(document.getElementById("mapVar"), numVars, "chla");
+  fillScale(document.getElementById("mapScale"),"Viridis");
+  fillVarSelect(document.getElementById("mapTrackVar"), LIVE_SCVARS, "spcond");
+  // profiles
+  fillVarSelect(document.getElementById("profVar"),
+    numVars.filter(v=>!["lat","lon","depth"].includes(v.key)), "chla");
+  const ps=document.getElementById("profStations");
+  const stations=[...new Set(DATA.map(d=>d.station))];
+  stations.forEach((st,i)=>{const o=document.createElement("option");
+    o.value=st;o.textContent=st; if(i<3)o.selected=true; ps.appendChild(o);});
+  // live sonde
+  fillVarSelect(document.getElementById("liveVar"), LIVE_SCVARS, "temp");
+  document.getElementById("liveVar").onchange=()=>{ liveChartDraw(); liveMapColored(); };
+  document.getElementById("liveStart").onclick=liveStart;
+  document.getElementById("liveStop").onclick=liveStop;
+  document.getElementById("liveClear").onclick=liveClear;
+  document.getElementById("liveCsv").onclick=downloadLive;
+  document.getElementById("liveFile").onchange=e=>{ if(e.target.files[0]) liveLoadFile(e.target.files[0]); e.target.value=""; };
+  document.getElementById("liveGpx").onchange=e=>{ if(e.target.files[0]) liveLoadGpx(e.target.files[0]); e.target.value=""; };
+  document.getElementById("gpsOffset").onchange=()=>{ if(gpxTrack&&LIVE.t.length) applyGps(); };
+  loadPrelive();
+  document.getElementById("liveSource").onchange=e=>{
+    setLiveStatus(e.target.value==="ble"
+      ? "YSI Bluetooth selected — press Start to connect (needs Chrome/Edge over https/localhost)."
+      : "Demo mode — press Start to stream simulated readings.");
+  };
+  liveCardsDraw();
+  // ctd
+  fillVarSelect(document.getElementById("ctdVar"), CTDVARS, "temp");
+  const cs=document.getElementById("ctdStations");
+  CTDSTATIONS.forEach((st,i)=>{const o=document.createElement("option");
+    o.value=i;o.textContent=st; if(i<3)o.selected=true; cs.appendChild(o);});
+  // scatter (dataset-dependent var lists)
+  const none={key:"__none__",label:"(none)"};
+  function fillScatterVars(){
+    const ds=document.getElementById("sDataset").value;
+    if(ds==="ctd"){
+      fillVarSelect(document.getElementById("sxVar"), CTD_SCVARS, "sal");
+      fillVarSelect(document.getElementById("syVar"), CTD_SCVARS, "temp");
+      fillVarSelect(document.getElementById("scVar"), [none,...CTD_SCVARS], "depth");
+    } else if(ds==="live"){
+      fillVarSelect(document.getElementById("sxVar"), LIVE_SCVARS, "odo_sat");
+      fillVarSelect(document.getElementById("syVar"), LIVE_SCVARS, "temp");
+      fillVarSelect(document.getElementById("scVar"), [none,...LIVE_SCVARS], "depth");
+    } else {
+      fillVarSelect(document.getElementById("sxVar"), numVars, "no3");
+      fillVarSelect(document.getElementById("syVar"), numVars, "chla");
+      fillVarSelect(document.getElementById("scVar"), [none,...numVars], "depth");
+    }
+  }
+  fillScatterVars();
+  fillScale(document.getElementById("sScale"),"Portland");
+  // section (dataset-dependent var lists)
+  function fillSectionVars(){
+    const ds=document.getElementById("secDataset").value;
+    if(ds==="ctd") fillVarSelect(document.getElementById("secVar"), CTDVARS, "temp");
+    else if(ds==="live") fillVarSelect(document.getElementById("secVar"), LIVE_VARS, "temp");
+    else fillVarSelect(document.getElementById("secVar"),
+      numVars.filter(v=>!["lat","lon","depth"].includes(v.key)), "chla");
+  }
+  fillSectionVars();
+  fillScale(document.getElementById("secScale"),"Jet");
+
+  // listeners
+  ["mapVar","mapDepth","mapScale","mapTrack","mapTrackVar","mapStations"].forEach(id=>document.getElementById(id).onchange=drawMap);
+  ["profVar","profStations"].forEach(id=>document.getElementById(id).onchange=drawProfiles);
+  ["ctdVar","ctdStations"].forEach(id=>document.getElementById(id).onchange=drawCtd);
+  document.getElementById("sDataset").onchange=()=>{fillScatterVars(); drawScatter();};
+  document.getElementById("secDataset").onchange=()=>{fillSectionVars(); drawSection();};
+  ["sxVar","syVar","scVar","sScale"].forEach(id=>document.getElementById(id).onchange=drawScatter);
+  ["secVar","secScale","secPow"].forEach(id=>document.getElementById(id).onchange=drawSection);
+  document.getElementById("tblSearch").oninput=drawTable;
+  document.getElementById("tDataset").onchange=e=>{
+    tblDataset=e.target.value;
+    sortKey = tblDataset==="ctd" ? "depth" : tblDataset==="live" ? "time" : "date";
+    sortDir=1; drawTable();
+  };
+  document.getElementById("dlCsv").onclick=downloadCsv;
+
+  computeYears(); renderYearBar();   // global year filter (after live data is pre-loaded)
+  aboutStats();
+  drawTable();   // about tab visible first; table cheap to prebuild
+  if(CHAT_ENABLED){ initLake(); }
+  else {           // hide the chat tab + its About blurb in public builds
+    const b=document.querySelector('[data-view=lake]'); if(b) b.style.display="none";
+    const s=document.getElementById("lake"); if(s) s.style.display="none";
+    const ab=document.getElementById("aboutChat"); if(ab) ab.style.display="none";
+  }
+}
+init();
+</script>
+</body>
+</html>
