@@ -93,8 +93,8 @@ def clean_station(raw):
 
 
 def parse_ctd():
-    raw = open(CTD_SRC, "rb").read().decode("cp1252")
-    rows = list(csv.reader(io.StringIO(raw)))[1:]
+    import glob as _glob
+    files = sorted(_glob.glob("LWFC_*_RBR_CTD_profile_data.csv"))  # all years, same column layout
     stations = []
     st_index = {}
     cols = {k: [] for (_i, k, *_r) in CTD_COLUMNS}
@@ -103,34 +103,37 @@ def parse_ctd():
     cols["date"] = []
     cols["lat"] = []
     cols["lon"] = []
-    for r in rows:
-        if not any(c.strip() for c in r):
-            continue
-        st = clean_station(r[0])
-        if st is None:
-            continue
-        depth = clean_num(r[20])
-        if depth is None or depth <= 0.05:        # drop above-water samples
-            continue
-        lat, lon = clean_num(r[8]), clean_num(r[9])
-        if lat is None or lon is None:
-            continue
-        if st not in st_index:
-            st_index[st] = len(stations)
-            stations.append(st)
-        cols["st"].append(st_index[st])
-        cols["depth"].append(round(depth, 2))
-        cols["lat"].append(round(lat, 5))
-        cols["lon"].append(round(lon, 5))
-        try:
-            cols["date"].append(f"{int(r[2]):04d}-{int(r[3]):02d}-{int(r[4]):02d}")
-        except (ValueError, IndexError):
-            cols["date"].append("")
-        for idx, key, _s, _l, dig in CTD_COLUMNS:
-            v = clean_num(r[idx] if idx < len(r) else "")
-            if key == "par" and v is not None and v < 0:   # unphysical sensor noise
-                v = None
-            cols[key].append(round(v, dig) if v is not None else None)
+    for path in files:
+        raw = open(path, "rb").read().decode("cp1252")
+        rows = list(csv.reader(io.StringIO(raw)))[1:]
+        for r in rows:
+            if not any(c.strip() for c in r):
+                continue
+            st = clean_station(r[0])
+            if st is None:
+                continue
+            depth = clean_num(r[20])
+            if depth is None or depth <= 0.05:        # drop above-water samples
+                continue
+            lat, lon = clean_num(r[8]), clean_num(r[9])
+            if lat is None or lon is None:
+                continue
+            if st not in st_index:
+                st_index[st] = len(stations)
+                stations.append(st)
+            cols["st"].append(st_index[st])
+            cols["depth"].append(round(depth, 2))
+            cols["lat"].append(round(lat, 5))
+            cols["lon"].append(round(lon, 5))
+            try:
+                cols["date"].append(f"{int(r[2]):04d}-{int(r[3]):02d}-{int(r[4]):02d}")
+            except (ValueError, IndexError):
+                cols["date"].append("")
+            for idx, key, _s, _l, dig in CTD_COLUMNS:
+                v = clean_num(r[idx] if idx < len(r) else "")
+                if key == "par" and v is not None and v < 0:   # unphysical sensor noise
+                    v = None
+                cols[key].append(round(v, dig) if v is not None else None)
     ctd_vars = [{"key": k, "short": s, "label": lbl}
                 for (_i, k, s, lbl, _d) in CTD_COLUMNS]
     return cols, ctd_vars, stations
