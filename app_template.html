@@ -444,6 +444,16 @@ const numVars = VARS.filter(v => !["date","station"].includes(v.key));
 const META = ["date","station"];
 const SCALES = ["Viridis","Jet","Portland","Cividis","YlGnBu","Turbo","Electric","RdBu"];
 const isNum = x => typeof x === "number" && !isNaN(x);
+// robust colour limits (1st–99th percentile) so a few outliers don't blow out the scale
+function robustRange(arr){
+  const v=arr.filter(isNum).sort((a,b)=>a-b);
+  if(v.length<5) return null;
+  const q=p=>v[Math.max(0,Math.min(v.length-1,Math.round(p*(v.length-1))))];
+  let lo=q(0.01), hi=q(0.99);
+  if(!(hi>lo)){ lo=v[0]; hi=v[v.length-1]; }
+  return (hi>lo)?[lo,hi]:null;
+}
+const clamp = arr => { const r=robustRange(arr); return r?{cmin:r[0],cmax:r[1],cauto:false}:{}; };
 const fmt = x => isNum(x) ? (Math.abs(x)>=100 ? x.toFixed(0) : Math.abs(x)>=1 ? x.toFixed(2) : x.toFixed(3)) : "—";
 
 function fillVarSelect(el, keys, selected){
@@ -559,7 +569,7 @@ function drawMap(){
       traces.push({type:"scattergl", mode:"markers", x:tlon, y:tlat, showlegend:false,
         hovertext:tval.map((v,k)=>txt(v,k)), hoverinfo:"text",
         marker: trackColored
-          ? {size:5, color:tval, colorscale:"Portland", showscale:true,
+          ? {size:5, color:tval, colorscale:"Portland", showscale:true, ...clamp(tval),
              colorbar:{title:{text:"Sonde "+tmeta.short, side:"right"}, thickness:13, len:0.46,
                x:1.0, xanchor:"left", y:0, yanchor:"bottom", bgcolor:"rgba(14,23,38,.6)"}}
           : {size:4, color:"#37c7e0"}});
@@ -573,7 +583,7 @@ function drawMap(){
     text:have.map(d=>d.station), textposition:"top center",
     textfont:{size:10,color:"#eef4ff"},
     hovertext:have.map(text), hoverinfo:"text",
-    marker:{size:15, color:have.map(d=>d[vk]), colorscale:scale, showscale:true,
+    marker:{size:15, color:have.map(d=>d[vk]), colorscale:scale, showscale:true, ...clamp(have.map(d=>d[vk])),
       line:{width:1.4,color:"#ffffff"},
       colorbar:{title:{text:lbl,side:"right"}, thickness:14,
         len: trackColored?0.46:0.85, x:1.0, xanchor:"left",
@@ -732,7 +742,7 @@ function drawScatter(){
     const trace={type:"scattergl", mode:"markers", x:xs, y:ys,
       hovertext:ht, hoverinfo:"text",
       marker: colored
-        ? {size:6, color:cs, colorscale:scale, showscale:true,
+        ? {size:6, color:cs, colorscale:scale, showscale:true, ...clamp(cs),
            colorbar:{title:{text:lk[ck].label,side:"right"},thickness:14,len:.85}}
         : {size:6, color:"#37c7e0"}};
     lay.xaxis={title:lk[xk].label, gridcolor:"#24364f"};
@@ -755,7 +765,7 @@ function drawScatter(){
     if(!xs.length){ emptyPlot("scatPlot","No live data yet — open the Live tab and press Start."); return; }
     const trace={type:"scattergl", mode:"markers", x:xs, y:ys, hovertext:ht, hoverinfo:"text",
       marker: colored
-        ? {size:7, color:cs, colorscale:scale, showscale:true,
+        ? {size:7, color:cs, colorscale:scale, showscale:true, ...clamp(cs),
            colorbar:{title:{text:lk[ck].label,side:"right"},thickness:14,len:.85}}
         : {size:7, color:"#7bdcb5"}};
     lay.xaxis={title:lk[xk].label, gridcolor:"#24364f"};
@@ -774,7 +784,7 @@ function drawScatter(){
       (colored?`<br>${byKey[ck].short}: ${fmt(d[ck])}`:"")),
     hoverinfo:"text",
     marker: colored
-      ? {size:13, color:cvals, colorscale:scale, showscale:true,
+      ? {size:13, color:cvals, colorscale:scale, showscale:true, ...clamp(cvals),
          line:{width:1,color:"#0e1726"},
          colorbar:{title:{text:byKey[ck].label,side:"right"},thickness:14,len:.85}}
       : {size:13, color:"#37c7e0", line:{width:1,color:"#0e1726"}},
@@ -952,8 +962,10 @@ function drawSection(){
     }
     Z.push(row);
   }
+  const zr=robustRange(pts.map(p=>p.v));   // clamp colour to 1–99 pct (avoids IDW/outlier blowout)
   const heat={type:"contour", x:gx, y:gy, z:Z, colorscale:scale,
     contours:{coloring:"heatmap"}, line:{width:0},
+    zauto: zr?false:true, zmin: zr?zr[0]:undefined, zmax: zr?zr[1]:undefined,
     colorbar:{title:{text:lbl,side:"right"},thickness:14,len:.9}};
   const dots={type:"scatter", mode:"markers", x:xs, y:ys,
     marker:{size:7,color:"#0e1726",line:{width:1.4,color:"#e8eef7"}},
@@ -1385,7 +1397,7 @@ function trackMapColored(divId, vk){
   if(vv.some(isNum)){
     traces.push({type:"scattergl", mode:"lines", x:linex, y:liney, line:{color:"rgba(55,199,224,.3)",width:1}, hoverinfo:"skip"});
     traces.push({type:"scattergl", mode:"markers", x:lo, y:la,
-      marker:{size:6, color:vv, colorscale:"Portland", showscale:true,
+      marker:{size:6, color:vv, colorscale:"Portland", showscale:true, ...clamp(vv),
         colorbar:{title:{text:meta.short||meta.label,side:"right"},thickness:12,len:.85,bgcolor:"rgba(14,23,38,.5)"}},
       hoverinfo:"skip"});
   } else {
