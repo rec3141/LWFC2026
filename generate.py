@@ -225,22 +225,33 @@ def _merge_gps(L, g, tol=120000):
 
 
 def parse_stations():
-    path = "sonde_stations.csv"
+    import datetime as dt
+    path = "CTD_LOG.csv"                              # canonical cast log (decimal coords)
     if not os.path.exists(path):
         return []
     out = []
     for r in csv.DictReader(open(path, encoding="utf-8")):
+        name = (r.get("Station") or "").strip()
         try:
             lat, lon = float(r["Latitude"]), float(r["Longitude"])
         except (ValueError, KeyError):
             continue
+        if not name:
+            continue
+        plat = (r.get("Platform") or "").strip().upper()
+        typ = "SMBOAT" if plat == "SMBOAT" else ("FULL" if name.lower().startswith("station") else "CTD")
+        start = (r.get("Time (Start)") or "").strip()
+        end = (r.get("Time (End)") or "").strip()
+        dur = 0.0
         try:
-            dur = float(r["Duration_min"])
-        except (ValueError, KeyError, TypeError):
-            dur = 0.0
-        out.append({"name": (r.get("Station") or "").strip(), "type": (r.get("Type") or "").strip(),
-                    "lat": lat, "lon": lon, "date": (r.get("Date") or "").strip(),
-                    "start": (r.get("Start") or "").strip(), "end": (r.get("End") or "").strip(), "dur": dur})
+            t0 = dt.datetime.strptime(start, "%I:%M:%S %p")
+            t1 = dt.datetime.strptime(end, "%I:%M:%S %p")
+            dur = round((t1 - t0).total_seconds() / 60, 1)
+        except ValueError:
+            pass
+        out.append({"name": name, "type": typ, "lat": lat, "lon": lon,
+                    "date": (r.get("Date") or "").strip(), "start": start, "end": end,
+                    "dur": dur, "notes": (r.get("Notes") or "").strip()})
     return out
 
 

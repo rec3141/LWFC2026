@@ -627,7 +627,7 @@ function drawMap(){
   // sonde stop stations overlay — one labelled marker style per station Type
   if((document.getElementById("mapStations")||{}).checked && STATIONS.length){
     const inYr = s => { const y=+String(s.date).slice(0,4); return (!y||isNaN(y)) ? true : SELECTED_YEARS.has(y); };
-    const sht = s=>`<b>${s.name}</b> · ${s.type}`+(s.date?`<br>${s.date} ${s.start}${s.end?"–"+s.end:""}`:"")+(s.dur?`<br>${fmt(s.dur)} min`:"");
+    const sht = s=>`<b>${s.name}</b> · ${s.type}`+(s.date?`<br>${s.date} ${s.start}${s.end?"–"+s.end:""}`:"")+(s.dur?`<br>${fmt(s.dur)} min`:"")+(s.notes?`<br><i>${s.notes}</i>`:"");
     const STYP={
       CTD:   {symbol:"circle",      color:"#7bdcb5", label:false, size:()=>12, out:"#0e1726"},
       FULL:  {symbol:"diamond",     color:"#f0a500", label:true,  size:s=>Math.min(28,11+s.dur/8), out:"#ffffff"},
